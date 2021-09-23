@@ -159,6 +159,13 @@ func (c *Client) GetUrlRules() ([]UrlRule, error) {
 	return res, nil
 }
 
+//AddUrlRule adds a URL filtering rules
+func (c *Client) AddUrlRule(rule UrlRule) error {
+	postBody, _ := json.Marshal(rule)
+	_, err := c.postRequest("/urlFilteringRules", postBody)
+	return err
+}
+
 //GetBlockedUrls gets a list of blocked URLs in Advanced Threat policy
 func (c *Client) GetBlockedUrls() (BlockedUrls, error) {
 	body, err := c.getRequest("/security/advanced")
