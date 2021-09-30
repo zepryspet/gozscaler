@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -135,7 +134,7 @@ func (c *Client) UrlLookup(urls []string) ([]UrlCat, error) {
 	postBody, _ := json.Marshal(urls)
 	body, err := c.postRequest("/urlLookup", postBody)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	res := []UrlCat{}
 	err = json.Unmarshal(body, &res)
@@ -222,6 +221,8 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	//Before anything returns defering close body
+	defer resp.Body.Close()
 	if resp.StatusCode == 429 {
 		// Retrying after X seconds only if you have retries left.
 		if c.RetryMax > 0 {
@@ -247,7 +248,6 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
 }
 
@@ -296,20 +296,26 @@ func httpStatusCheck(resp *http.Response) error {
 //KeyGen function gets the authentication parameter and returns the JSESSIONID which is the cookie that authenticates the requests
 func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.Cookie, error) {
 	t := strconv.FormatInt(time.Now().UnixMilli(), 10)
-	key := obfuscateApiKey(apiKey, t)
-	postBody, _ := json.Marshal(map[string]string{
+	key, err := obfuscateApiKey(apiKey, t)
+	if err != nil {
+		return nil, err
+	}
+	postBody, err := json.Marshal(map[string]string{
 		"apiKey":    key,
 		"username":  admin,
 		"password":  pass,
 		"timestamp": t,
 	})
+	if err != nil {
+		return nil, err
+	}
 	data := bytes.NewBuffer(postBody)
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
 	resp, err := client.Post(BaseURL+"/authenticatedSession", "application/json", data)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	for _, cookie := range resp.Cookies() {
@@ -321,18 +327,30 @@ func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.C
 }
 
 //obfuscateApiKey ofuscates the API key based on Zscaler documentation
-func obfuscateApiKey(api string, t string) string {
+func obfuscateApiKey(api string, t string) (string, error) {
+	if len(t) < 6 {
+		return "", errors.New("time lenght for ofuscation is less than 6 digits, please check your system's clock")
+	}
 	n := t[len(t)-6:]
-	intVar, _ := strconv.Atoi(n)
+	intVar, err := strconv.Atoi(n)
+	if err != nil {
+		return "", err
+	}
 	r := fmt.Sprintf("%06d", intVar>>1)
 	key := ""
 	for i, _ := range n {
-		d, _ := strconv.Atoi((n)[i : i+1])
+		d, err := strconv.Atoi((n)[i : i+1])
+		if err != nil {
+			return "", err
+		}
 		key += api[d : d+1]
 	}
 	for j, _ := range r {
-		d, _ := strconv.Atoi((r)[j : j+1])
+		d, err := strconv.Atoi((r)[j : j+1])
+		if err != nil {
+			return "", err
+		}
 		key += api[d+2 : d+3]
 	}
-	return key
+	return key, nil
 }
