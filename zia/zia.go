@@ -343,12 +343,18 @@ func obfuscateApiKey(api string, t string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if d+1 > len(api) {
+			return "", errors.New("invalid api key size")
+		}
 		key += api[d : d+1]
 	}
 	for j, _ := range r {
 		d, err := strconv.Atoi((r)[j : j+1])
 		if err != nil {
 			return "", err
+		}
+		if d+3 > len(api) {
+			return "", errors.New("invalid api key size")
 		}
 		key += api[d+2 : d+3]
 	}
