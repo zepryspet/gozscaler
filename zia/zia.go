@@ -216,6 +216,10 @@ func (c *Client) putRequest(path string, payload []byte) error {
 
 //Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
+	//Extracting body payload
+	payload, _ := ioutil.ReadAll(req.Body)
+	// reset Request.Body
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -233,6 +237,8 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 			s := time.Duration(t) * time.Second
 			time.Sleep(s)
 			c.RetryMax -= 1
+			// reset Request.Body
+			req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
 			return c.do(req)
 		}
 	}
@@ -241,6 +247,8 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 		s := time.Duration(c.RetryMax) * time.Second
 		time.Sleep(s)
 		c.RetryMax -= 1
+		// reset Request.Body
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
 		return c.do(req)
 	}
 	// Catch all when there's no more retries left
