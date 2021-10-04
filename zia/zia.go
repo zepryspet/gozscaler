@@ -90,6 +90,11 @@ type BlockedUrls struct {
 	Urls []string `json:"blacklistUrls"`
 }
 
+//AllowedUrls parses responses for Allowed urls
+type AllowedUrls struct {
+	Urls []string `json:"whitelistUrls"`
+}
+
 //UrlCat parses responses for received url categories
 type UrlCat struct {
 	URL       string   `json:"url"`
@@ -124,7 +129,7 @@ func NewClient(BaseURL string, admin string, pass string, apiKey string) (*Clien
 			Jar:     CookieJar,
 			Timeout: time.Second * 10,
 		},
-		RetryMax: 3,
+		RetryMax: 10,
 	}, nil
 }
 
@@ -179,9 +184,30 @@ func (c *Client) GetBlockedUrls() (BlockedUrls, error) {
 	return res, nil
 }
 
+//AddBlockedUrls replaces current existing blocked list
 func (c *Client) AddBlockedUrls(urls BlockedUrls) error {
 	postBody, _ := json.Marshal(urls)
 	return c.putRequest("/security/advanced", postBody)
+}
+
+//GetAllowedUrls gets a list of blocked URLs in Advanced Threat policy
+func (c *Client) GetAllowedUrls() (AllowedUrls, error) {
+	body, err := c.getRequest("/security")
+	if err != nil {
+		return AllowedUrls{}, err
+	}
+	res := AllowedUrls{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return AllowedUrls{}, err
+	}
+	return res, nil
+}
+
+//AddAllowedUrls replaces current existing blocked list
+func (c *Client) AddAllowedUrls(urls AllowedUrls) error {
+	postBody, _ := json.Marshal(urls)
+	return c.putRequest("/security", postBody)
 }
 
 //Process and sends HTTP POST requests
