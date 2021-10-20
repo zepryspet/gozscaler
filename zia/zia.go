@@ -85,6 +85,37 @@ type UrlRule struct {
 	Ciparule            bool   `json:"ciparule,omitempty"`
 }
 
+type UrlCat struct {
+	ID                string   `json:"id"`
+	ConfiguredName    string   `json:"configuredName"`
+	Urls              []string `json:"urls"`
+	DbCategorizedUrls []string `json:"dbCategorizedUrls"`
+	CustomCategory    bool     `json:"customCategory"`
+	Scopes            []struct {
+		ScopeGroupMemberEntities []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"scopeGroupMemberEntities"`
+		Type          string `json:"Type"`
+		ScopeEntities []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"ScopeEntities"`
+	} `json:"scopes"`
+	Editable         bool   `json:"editable"`
+	Description      string `json:"description"`
+	Type             string `json:"type"`
+	URLKeywordCounts struct {
+		TotalURLCount            int `json:"totalUrlCount"`
+		RetainParentURLCount     int `json:"retainParentUrlCount"`
+		TotalKeywordCount        int `json:"totalKeywordCount"`
+		RetainParentKeywordCount int `json:"retainParentKeywordCount"`
+	} `json:"urlKeywordCounts"`
+	Val                              int `json:"val"`
+	CustomUrlsCount                  int `json:"customUrlsCount"`
+	UrlsRetainingParentCategoryCount int `json:"urlsRetainingParentCategoryCount"`
+}
+
 //BlockedUrls parses responses for blocked urls
 type BlockedUrls struct {
 	Urls []string `json:"blacklistUrls"`
@@ -95,8 +126,8 @@ type AllowedUrls struct {
 	Urls []string `json:"whitelistUrls"`
 }
 
-//UrlCat parses responses for received url categories
-type UrlCat struct {
+//UrlLookup parses responses for received url categories
+type UrlLookup struct {
 	URL       string   `json:"url"`
 	URLCat    []string `json:"urlClassifications"`
 	URLCatSec []string `json:"urlClassificationsWithSecurityAlert"`
@@ -135,13 +166,13 @@ func NewClient(BaseURL string, admin string, pass string, apiKey string) (*Clien
 
 //UrlLookup return the url categories for requested URLs.
 //up to 100 urls per request and 400 requests per hour according to zscaler limits
-func (c *Client) UrlLookup(urls []string) ([]UrlCat, error) {
+func (c *Client) UrlLookup(urls []string) ([]UrlLookup, error) {
 	postBody, _ := json.Marshal(urls)
 	body, err := c.postRequest("/urlLookup", postBody)
 	if err != nil {
 		return nil, err
 	}
-	res := []UrlCat{}
+	res := []UrlLookup{}
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
@@ -170,6 +201,27 @@ func (c *Client) AddUrlRule(rule UrlRule) error {
 	return err
 }
 
+//GetUrlCats gets a list of URL filtering rules
+func (c *Client) GetUrlCats() ([]UrlCat, error) {
+	body, err := c.getRequest("/urlCategories")
+	if err != nil {
+		return nil, err
+	}
+	res := []UrlCat{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+//AddUrlRule adds a URL filtering rules
+func (c *Client) AddUrlCat(category UrlCat) error {
+	postBody, _ := json.Marshal(category)
+	_, err := c.postRequest("/urlCategories", postBody)
+	return err
+}
+
 //GetBlockedUrls gets a list of blocked URLs in Advanced Threat policy
 func (c *Client) GetBlockedUrls() (BlockedUrls, error) {
 	body, err := c.getRequest("/security/advanced")
@@ -185,8 +237,11 @@ func (c *Client) GetBlockedUrls() (BlockedUrls, error) {
 }
 
 //AddBlockedUrls replaces current existing blocked list
-func (c *Client) AddBlockedUrls(urls BlockedUrls) error {
-	postBody, _ := json.Marshal(urls)
+func (c *Client) RepBlockedUrls(urls BlockedUrls) error {
+	postBody, err := json.Marshal(urls)
+	if err != nil {
+		return err
+	}
 	return c.putRequest("/security/advanced", postBody)
 }
 
@@ -204,9 +259,12 @@ func (c *Client) GetAllowedUrls() (AllowedUrls, error) {
 	return res, nil
 }
 
-//AddAllowedUrls replaces current existing blocked list
-func (c *Client) AddAllowedUrls(urls AllowedUrls) error {
-	postBody, _ := json.Marshal(urls)
+//RepAllowedUrls replaces current existing allowed list
+func (c *Client) RepAllowedUrls(urls AllowedUrls) error {
+	postBody, err := json.Marshal(urls)
+	if err != nil {
+		return err
+	}
 	return c.putRequest("/security", postBody)
 }
 
@@ -243,9 +301,7 @@ func (c *Client) putRequest(path string, payload []byte) error {
 //Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	//Extracting body payload
-	payload, _ := ioutil.ReadAll(req.Body)
-	// reset Request.Body
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+	req, payload := getReqBody(req)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -299,6 +355,17 @@ func retryAfter(resp *http.Response) (int64, error) {
 		return 0, err
 	}
 	return intVar, nil
+}
+
+func getReqBody(req *http.Request) (*http.Request, []byte) {
+	if req.Method == "POST" || req.Method == "PUT" {
+		//Find payload and reset it
+		payload, _ := ioutil.ReadAll(req.Body)
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+		return req, payload
+	} else {
+		return req, nil
+	}
 }
 
 //httpStatusCheck receives an http response and returns an error based on zscaler documentation.
