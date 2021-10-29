@@ -86,12 +86,14 @@ type UrlRule struct {
 }
 
 type UrlCat struct {
-	ID                string   `json:"id"`
-	ConfiguredName    string   `json:"configuredName"`
-	Urls              []string `json:"urls"`
-	DbCategorizedUrls []string `json:"dbCategorizedUrls"`
-	CustomCategory    bool     `json:"customCategory"`
-	Scopes            []struct {
+	ID                              string   `json:"id"`
+	ConfiguredName                  string   `json:"configuredName"`
+	Keywords                        []string `json:"keywords"`
+	KeywordsRetainingParentCategory []string `json:"keywordsRetainingParentCategory"`
+	Urls                            []string `json:"urls"`
+	DbCategorizedUrls               []string `json:"dbCategorizedUrls"`
+	CustomCategory                  bool     `json:"customCategory"`
+	Scopes                          []struct {
 		ScopeGroupMemberEntities []struct {
 			ID   int    `json:"id"`
 			Name string `json:"name"`
@@ -131,6 +133,82 @@ type UrlLookup struct {
 	URL       string   `json:"url"`
 	URLCat    []string `json:"urlClassifications"`
 	URLCatSec []string `json:"urlClassificationsWithSecurityAlert"`
+}
+
+//Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
+type Zurl interface {
+	GetUrls(string) []string
+	SetUrls(string, []string)
+	PushItems(client *Client) error
+	GetName() string
+}
+
+//func (c BlockedUrls)  returns all the urls in a blocklist
+func (c *BlockedUrls) GetUrls(f string) []string {
+	return c.Urls
+}
+
+//func (c Allowed)  returns all the urls in a allowlist
+func (c *AllowedUrls) GetUrls(f string) []string {
+	return c.Urls
+}
+
+//SetUrls sets all the urls in a allowlist
+func (c *UrlCat) GetUrls(f string) []string {
+	if f == "urlsRetainingParentCategory" {
+		return c.DbCategorizedUrls
+	}
+	//default is return urls
+	return c.Urls
+}
+
+//func (c BlockedUrls)  sets all the urls in a blocklist
+func (c *BlockedUrls) SetUrls(f string, u []string) {
+	c.Urls = u
+}
+
+//SetUrls sets all the urls in a allowlist
+func (c *AllowedUrls) SetUrls(f string, u []string) {
+	c.Urls = u
+}
+
+//SetUrls sets all the urls in a allowlist
+func (c *UrlCat) SetUrls(f string, u []string) {
+	if f == "urls" {
+		c.Urls = u
+	} else if f == "urlsRetainingParentCategory" {
+		c.DbCategorizedUrls = u
+	}
+}
+
+//func (c BlockedUrls) GetName()   returns all the urls in a blocklist
+func (c *BlockedUrls) GetName() string {
+	return "Global Block List"
+}
+
+//func (c AllowedUrls) GetName()  returns all the urls in a allowlist
+func (c *AllowedUrls) GetName() string {
+	return "Global Allow List"
+}
+
+//func (c UrlCat) GetName()  returns all the urls in a UrlCat
+func (c *UrlCat) GetName() string {
+	return c.ConfiguredName
+}
+
+//PushItems pushes all the urls in a blocklist
+func (c BlockedUrls) PushItems(client *Client) error {
+	return client.RepBlockedUrls(c)
+}
+
+//PushItems pushes all the urls in a allowlist
+func (c AllowedUrls) PushItems(client *Client) error {
+	return client.RepAllowedUrls(c)
+}
+
+//PushItems pushes all the urls in a allowlist
+func (c UrlCat) PushItems(client *Client) error {
+	return client.UpdateUrlCat(c)
 }
 
 //retry parses response for an HTTP 429 response to retry after X seconds.
@@ -201,24 +279,32 @@ func (c *Client) AddUrlRule(rule UrlRule) error {
 	return err
 }
 
-//GetUrlCats gets a list of URL filtering rules
+//GetUrlCats gets a list of URL filtering category
 func (c *Client) GetUrlCats() ([]UrlCat, error) {
+	res := []UrlCat{}
 	body, err := c.getRequest("/urlCategories")
 	if err != nil {
-		return nil, err
+		return res, err
 	}
-	res := []UrlCat{}
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 	return res, nil
 }
 
-//AddUrlRule adds a URL filtering rules
+//AddUrlRule adds a URL filtering category
 func (c *Client) AddUrlCat(category UrlCat) error {
 	postBody, _ := json.Marshal(category)
 	_, err := c.postRequest("/urlCategories", postBody)
+	return err
+}
+
+//UpdateUrlCat updates a URL filtering category
+func (c *Client) UpdateUrlCat(category UrlCat) error {
+	path := "/urlCategories/" + category.ID
+	postBody, _ := json.Marshal(category)
+	err := c.putRequest(path, postBody)
 	return err
 }
 
@@ -236,7 +322,7 @@ func (c *Client) GetBlockedUrls() (BlockedUrls, error) {
 	return res, nil
 }
 
-//AddBlockedUrls replaces current existing blocked list
+//RepBlockedUrls replaces current existing blocked list
 func (c *Client) RepBlockedUrls(urls BlockedUrls) error {
 	postBody, err := json.Marshal(urls)
 	if err != nil {
@@ -268,7 +354,7 @@ func (c *Client) RepAllowedUrls(urls AllowedUrls) error {
 	return c.putRequest("/security", postBody)
 }
 
-//Process and sends HTTP POST requests
+//postRequest Process and sends HTTP POST requests
 func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 	data := bytes.NewBuffer(payload)
 	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, data)
@@ -278,7 +364,7 @@ func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 	return c.do(req)
 }
 
-//Process and sends HTTP GET requests
+//getRequest Process and sends HTTP GET requests
 func (c *Client) getRequest(path string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
