@@ -4,25 +4,953 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
-//Client contains the base url, http client and max number of retries per requests
+//Client contains the base url, http client and max number of retries per request.
+//It also includes ZPA info like customerID
+//And policy IDs for
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
 	RetryMax   int
+	Token      string
+	CustomerId string
+	AccessID   string //ID for ZPA access policy
+	ReauthID   string //ID for ZPA reauth policy
+	SiemID     string //ID for ZPA SIEM policy
+	BypassID   string //ID for Bypass ID policy
+	Policy     string //Options are : access,reauth,siem,bypass
+	//Policy type so we can detect which kind of policy you want to interact with.
+}
+
+//myToken parses the auth response
+type myToken struct {
+	TType   string `json:"token_type"`
+	Expires string `json:"expires_in"`
+	Token   string `json:"access_token"`
+}
+
+/////////////////
+//API structs////
+/////////////////
+
+//TCPPortRange helps build app segment
+type TCPPortRange struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+//UDPPortRange helps build app segment
+type UDPPortRange struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+//ClientLessApps helps build app segment
+type ClientLessApps struct {
+	AllowOptions        bool   `json:"allowOptions"`
+	AppID               string `json:"appId"`
+	ApplicationPort     string `json:"applicationPort"`
+	ApplicationProtocol string `json:"applicationProtocol"`
+	CertificateID       string `json:"certificateId"`
+	CertificateName     string `json:"certificateName"`
+	Cname               string `json:"cname"`
+	Description         string `json:"description"`
+	Domain              string `json:"domain"`
+	Enabled             bool   `json:"enabled"`
+	Hidden              bool   `json:"hidden"`
+	ID                  string `json:"id"`
+	LocalDomain         string `json:"localDomain"`
+	Name                string `json:"name"`
+	Path                string `json:"path"`
+	Portal              bool   `json:"portal"`
+	TrustUntrustedCert  bool   `json:"trustUntrustedCert"`
+}
+
+//InspectionApps helps build app segment
+type InspectionApps struct {
+	AppID               string `json:"appId"`
+	ApplicationPort     string `json:"applicationPort"`
+	ApplicationProtocol string `json:"applicationProtocol"`
+	CertificateID       string `json:"certificateId"`
+	CertificateName     string `json:"certificateName"`
+	Description         string `json:"description"`
+	Domain              string `json:"domain"`
+	Enabled             bool   `json:"enabled"`
+	ID                  string `json:"id"`
+	Name                string `json:"name"`
+}
+
+//AppsConfig helps build app segment
+type AppsConfig struct {
+	AllowOptions        bool     `json:"allowOptions"`
+	AppID               string   `json:"appId"`
+	AppTypes            []string `json:"appTypes"`
+	ApplicationPort     string   `json:"applicationPort"`
+	ApplicationProtocol string   `json:"applicationProtocol"`
+	BaAppID             string   `json:"baAppId"`
+	CertificateID       string   `json:"certificateId"`
+	CertificateName     string   `json:"certificateName"`
+	Cname               string   `json:"cname"`
+	Description         string   `json:"description"`
+	Domain              string   `json:"domain"`
+	Enabled             bool     `json:"enabled"`
+	Hidden              bool     `json:"hidden"`
+	InspectAppID        string   `json:"inspectAppId"`
+	LocalDomain         string   `json:"localDomain"`
+	Name                string   `json:"name"`
+	Path                string   `json:"path"`
+	Portal              bool     `json:"portal"`
+	TrustUntrustedCert  bool     `json:"trustUntrustedCert"`
+}
+
+//CommonAppsDto helps build app segment
+type CommonAppsDto struct {
+	AppsConfig         []AppsConfig `json:"appsConfig"`
+	DeletedBaApps      []string     `json:"deletedBaApps"`
+	DeletedInspectApps []string     `json:"deletedInspectApps"`
+}
+
+//AppSegment holds the app segment
+type AppSegment struct {
+	SegmentGroupID       string           `json:"segmentGroupId"`
+	SegmentGroupName     string           `json:"segmentGroupName"`
+	BypassType           string           `json:"bypassType"`
+	ClientlessApps       []ClientLessApps `json:"clientlessApps,omitempty"`
+	CommonAppsDto        []CommonAppsDto  `json:"commonAppsDto,omitempty"`
+	ConfigSpace          string           `json:"configSpace"`
+	CreationTime         string           `json:"creationTime"`
+	DefaultIdleTimeout   string           `json:"defaultIdleTimeout"`
+	DefaultMaxAge        string           `json:"defaultMaxAge"`
+	Description          string           `json:"description"`
+	DomainNames          []string         `json:"domainNames"`
+	DoubleEncrypt        bool             `json:"doubleEncrypt"`
+	Enabled              bool             `json:"enabled"`
+	HealthCheckType      string           `json:"healthCheckType"`
+	HealthReporting      string           `json:"healthReporting"`
+	IcmpAccessType       string           `json:"icmpAccessType"`
+	ID                   string           `json:"id"`
+	InspectionApps       []InspectionApps `json:"inspectionApps,omitempty"`
+	IPAnchored           bool             `json:"ipAnchored"`
+	IsCnameEnabled       bool             `json:"isCnameEnabled"`
+	ModifiedBy           string           `json:"modifiedBy"`
+	ModifiedTime         string           `json:"modifiedTime"`
+	Name                 string           `json:"name"`
+	PassiveHealthEnabled bool             `json:"passiveHealthEnabled"`
+	ServerGroups         []ServerGroup    `json:"serverGroups"`
+	TCPPortRange         []TCPPortRange   `json:"tcpPortRange"`
+	TCPPortRanges        []string         `json:"tcpPortRanges"`
+	UDPPortRange         []UDPPortRange   `json:"udpPortRange"`
+	UDPPortRanges        []string         `json:"udpPortRanges"`
+}
+
+//GetID return the object ID
+func (obj AppSegment) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//Create creates the object on the ZPA tenant registered with the client
+func (obj AppSegment) Create(c *Client) (string, error) {
+	return c.AddAppSegment(obj)
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *AppSegment) ResetID(m map[string]string) {
+	//Reset own ID
+	id, ok := m[obj.ID]
+	if ok {
+		obj.ID = id
+	}
+	//Setting Segement group ID
+	id, ok = m[obj.SegmentGroupID]
+	if ok {
+		obj.SegmentGroupID = id
+	}
+	//Setting server groups
+	var SrvGrp []ServerGroup
+	//Checking app connector
+	for _, v := range obj.ServerGroups {
+		v.ResetID(m)
+		SrvGrp = append(SrvGrp, v)
+	}
+	obj.ServerGroups = SrvGrp
+	//Creating empty objects. Only appending existing references
+	//Removing Clientless apps since it's not supported by API
+	if len(obj.ClientlessApps) > 0 {
+		//Adding removed items into description
+		tmp := ""
+		for _, v := range obj.ClientlessApps {
+			tmp += v.Name
+		}
+		obj.Description += "Removed Browser access apps: " + tmp
+		//Removing it
+		var clapps []ClientLessApps
+		obj.ClientlessApps = clapps
+	}
+	//Checking Commonappsto and inspection apps will be reset until we can find what they do
+	var capps []CommonAppsDto
+	var iapps []InspectionApps
+	obj.CommonAppsDto = capps
+	obj.InspectionApps = iapps
+}
+
+//SegmentGroup parses segment groups
+type SegmentGroup struct {
+	Applications        []AppSegment `json:"applications"`
+	ConfigSpace         string       `json:"configSpace"`
+	CreationTime        string       `json:"creationTime"`
+	Description         string       `json:"description"`
+	Enabled             bool         `json:"enabled"`
+	ID                  string       `json:"id"`
+	ModifiedBy          string       `json:"modifiedBy"`
+	ModifiedTime        string       `json:"modifiedTime"`
+	Name                string       `json:"name"`
+	PolicyMigrated      bool         `json:"policyMigrated"`
+	TCPKeepAliveEnabled string       `json:"tcpKeepAliveEnabled"`
+}
+
+//GetID return the object ID
+func (obj SegmentGroup) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//Create creates the object on the ZPA tenant registered with the client
+func (obj SegmentGroup) Create(c *Client) (string, error) {
+	return c.AddSegmentGroup(obj)
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *SegmentGroup) ResetID(m map[string]string) {
+	//Reset own ID
+	id, ok := m[obj.ID]
+	if ok {
+		obj.ID = id
+	}
+	//start with empty objects, only add object if ID exist. Reset ID
+	var Segment []AppSegment
+	//Checking app connector
+	for _, v := range obj.Applications {
+		_, ok := m[v.ID]
+		if ok {
+			v.ResetID(m)
+			Segment = append(Segment, v)
+		}
+	}
+	obj.Applications = Segment
+}
+
+//Servers parses zpa servers
+type Server struct {
+	Address           string   `json:"address"`
+	AppServerGroupIds []string `json:"appServerGroupIds"`
+	ConfigSpace       string   `json:"configSpace"`
+	CreationTime      string   `json:"creationTime"`
+	Description       string   `json:"description"`
+	Enabled           bool     `json:"enabled"`
+	ID                string   `json:"id"`
+	ModifiedBy        string   `json:"modifiedBy"`
+	ModifiedTime      string   `json:"modifiedTime"`
+	Name              string   `json:"name"`
+}
+
+//GetID return the object ID
+func (obj Server) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//Create creates the object on the ZPA tenant registered with the client
+func (obj Server) Create(c *Client) (string, error) {
+	return c.AddServer(obj)
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *Server) ResetID(m map[string]string) {
+	//Reset own ID
+	id, ok := m[obj.ID]
+	if ok {
+		obj.ID = id
+	}
+	//start with empty objects, only add object if ID exist. Reset ID
+	var SrvGrp []string
+	//Checking app connector
+	for _, v := range obj.AppServerGroupIds {
+		id, ok := m[v]
+		if ok {
+			SrvGrp = append(SrvGrp, id)
+		}
+	}
+	obj.AppServerGroupIds = SrvGrp
+}
+
+//ServerGroup parses zpa servers
+type ServerGroup struct {
+	Applications       []NameID            `json:"applications,omitempty"`
+	AppConnectorGroups []AppConnectorGroup `json:"appConnectorGroups,omitempty"`
+	ConfigSpace        string              `json:"configSpace"`
+	CreationTime       string              `json:"creationTime"`
+	Description        string              `json:"description"`
+	Enabled            bool                `json:"enabled"`
+	ID                 string              `json:"id,omitempty"`
+	IPAnchored         bool                `json:"ipAnchored"`
+	DynamicDiscovery   bool                `json:"dynamicDiscovery"`
+	ModifiedBy         string              `json:"modifiedBy"`
+	ModifiedTime       string              `json:"modifiedTime"`
+	Name               string              `json:"name"`
+	Servers            []Server            `json:"servers,omitempty"`
+}
+
+//GetID return the object ID
+func (obj ServerGroup) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//Create creates the object on the ZPA tenant registered with the client
+func (obj ServerGroup) Create(c *Client) (string, error) {
+	return c.AddServerGroup(obj)
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *ServerGroup) ResetID(m map[string]string) {
+	//Reset own ID
+	id, ok := m[obj.ID]
+	if ok {
+		obj.ID = id
+	}
+	//start with empty objects, only add object if ID exist. Reset ID
+	var apps []NameID
+	var connGrp []AppConnectorGroup
+	var server []Server
+	//Checking app segments
+	for _, v := range obj.Applications {
+		id, ok := m[v.ID]
+		if ok {
+			v.ID = id
+			apps = append(apps, v)
+		}
+	}
+	obj.Applications = apps
+	//checking app connector groups
+	for _, v := range obj.AppConnectorGroups {
+		v.ResetID(m)
+		connGrp = append(connGrp, v)
+	}
+	obj.AppConnectorGroups = connGrp
+	//Checking Servers
+	for _, v := range obj.Servers {
+		//Adding only IDs
+		v.ResetID(m)
+		server = append(server, v)
+	}
+	obj.Servers = server
+}
+
+//AppConnector parses app connectors
+type AppConnector struct {
+	ApplicationStartTime             string   `json:"applicationStartTime"`
+	AppConnectorGroupID              string   `json:"appConnectorGroupId"`
+	AppConnectorGroupName            string   `json:"appConnectorGroupName"`
+	ControlChannelStatus             string   `json:"controlChannelStatus"`
+	CreationTime                     string   `json:"creationTime"`
+	CtrlBrokerName                   string   `json:"ctrlBrokerName"`
+	CurrentVersion                   string   `json:"currentVersion"`
+	Description                      string   `json:"description"`
+	Enabled                          bool     `json:"enabled"`
+	ExpectedUpgradeTime              string   `json:"expectedUpgradeTime"`
+	ExpectedVersion                  string   `json:"expectedVersion"`
+	Fingerprint                      string   `json:"fingerprint"`
+	ID                               string   `json:"id"`
+	IPACL                            []string `json:"ipAcl"`
+	IssuedCertID                     string   `json:"issuedCertId"`
+	LastBrokerConnectTime            string   `json:"lastBrokerConnectTime"`
+	LastBrokerConnectTimeDuration    string   `json:"lastBrokerConnectTimeDuration"`
+	LastBrokerDisconnectTime         string   `json:"lastBrokerDisconnectTime"`
+	LastBrokerDisconnectTimeDuration string   `json:"lastBrokerDisconnectTimeDuration"`
+	LastUpgradeTime                  string   `json:"lastUpgradeTime"`
+	Latitude                         string   `json:"latitude"`
+	Location                         string   `json:"location"`
+	Longitude                        string   `json:"longitude"`
+	ModifiedBy                       string   `json:"modifiedBy"`
+	ModifiedTime                     string   `json:"modifiedTime"`
+	Name                             string   `json:"name"`
+	ProvisioningKeyID                string   `json:"provisioningKeyId"`
+	ProvisioningKeyName              string   `json:"provisioningKeyName"`
+	Platform                         string   `json:"platform"`
+	PreviousVersion                  string   `json:"previousVersion"`
+	PrivateIP                        string   `json:"privateIp"`
+	PublicIP                         string   `json:"publicIp"`
+	SargeVersion                     string   `json:"sargeVersion"`
+	EnrollmentCert                   struct {
+		AdditionalProp1 string `json:"additionalProp1"`
+		AdditionalProp2 string `json:"additionalProp2"`
+		AdditionalProp3 string `json:"additionalProp3"`
+	} `json:"enrollmentCert"`
+	UpgradeAttempt string `json:"upgradeAttempt"`
+	UpgradeStatus  string `json:"upgradeStatus"`
+}
+
+//GetID return the object ID
+func (obj AppConnector) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//AppConnectorGroup hold app connector groups from zpa
+type AppConnectorGroup struct {
+	Connectors                    []AppConnector `json:"connectors,omitempty"`
+	CityCountry                   string         `json:"cityCountry,omitempty"`
+	CountryCode                   string         `json:"countryCode,omitempty"`
+	CreationTime                  string         `json:"creationTime,omitempty"`
+	Description                   string         `json:"description,omitempty"`
+	DNSQueryType                  string         `json:"dnsQueryType,omitempty"`
+	Enabled                       bool           `json:"enabled,omitempty"`
+	GeoLocationID                 string         `json:"geoLocationId,omitempty"`
+	ID                            string         `json:"id"`
+	Latitude                      string         `json:"latitude,omitempty"`
+	Location                      string         `json:"location,omitempty"`
+	Longitude                     string         `json:"longitude,omitempty"`
+	ModifiedBy                    string         `json:"modifiedBy,omitempty"`
+	ModifiedTime                  string         `json:"modifiedTime,omitempty"`
+	Name                          string         `json:"name,omitempty"`
+	OverrideVersionProfile        bool           `json:"overrideVersionProfile,omitempty"`
+	ServerGroups                  []ServerGroup  `json:"serverGroups,omitempty"`
+	LssAppConnectorGroup          bool           `json:"lssAppConnectorGroup,omitempty"`
+	UpgradeDay                    string         `json:"upgradeDay,omitempty"`
+	UpgradeTimeInSecs             string         `json:"upgradeTimeInSecs,omitempty"`
+	VersionProfileID              string         `json:"versionProfileId,omitempty"`
+	VersionProfileName            string         `json:"versionProfileName,omitempty"`
+	VersionProfileVisibilityScope string         `json:"versionProfileVisibilityScope,omitempty"`
+}
+
+//GetID return the object ID
+func (obj AppConnectorGroup) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//Create creates the object on the ZPA tenant registered with the client
+func (obj AppConnectorGroup) Create(c *Client) (string, error) {
+	return c.AddAppConnectorGroup(obj)
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *AppConnectorGroup) ResetID(m map[string]string) {
+	//Reset own ID
+	id, ok := m[obj.ID]
+	if ok {
+		obj.ID = id
+	}
+	//start with empty objects, only add object if ID exist. Reset ID
+	var conn []AppConnector
+	var SrvGrp []ServerGroup
+	//Checking app connector
+	for _, v := range obj.Connectors {
+		id, ok := m[v.ID]
+		if ok {
+			v.ID = id
+			conn = append(conn, v)
+		}
+	}
+	obj.Connectors = conn
+	//Checking Server groups
+	for _, v := range obj.ServerGroups {
+		id, ok := m[v.ID]
+		if ok {
+			v.ID = id
+			SrvGrp = append(SrvGrp, v)
+		}
+	}
+	obj.ServerGroups = SrvGrp
+}
+
+//PolicyConditions holds conditions for zpa policies
+type PolicyConditions struct {
+	CreationTime string           `json:"creationTime"`
+	ID           string           `json:"id"`
+	ModifiedBy   string           `json:"modifiedBy"`
+	ModifiedTime string           `json:"modifiedTime"`
+	Negated      bool             `json:"negated"`
+	Operands     []PolicyOperands `json:"operands"`
+	Operator     string           `json:"operator"`
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *PolicyConditions) ResetID(m map[string]string) {
+	var operands []PolicyOperands
+	//it seems that only RHS IDs need to be changed. other IDs don't seem to fall under global IDs
+	for _, v := range obj.Operands {
+		v.ResetID(m)
+		operands = append(operands, v)
+	}
+	obj.Operands = operands
+}
+
+//PolicyConditions holds PolicyOperands for PolicyConditions used in zpa policies
+type PolicyOperands struct {
+	CreationTime string `json:"creationTime"`
+	ID           string `json:"id"`
+	IdpID        string `json:"idpId"`
+	LHS          string `json:"lhs"`
+	ModifiedBy   string `json:"modifiedBy"`
+	ModifiedTime string `json:"modifiedTime"`
+	Name         string `json:"name"`
+	ObjectType   string `json:"objectType"`
+	RHS          string `json:"rhs"`
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *PolicyOperands) ResetID(m map[string]string) {
+	//it seems that only RHS IDs need to be changed. other IDs don't seem to fall under global IDs
+	//Reset own ID
+	id, ok := m[obj.RHS]
+	if ok {
+		obj.RHS = id
+	} else {
+		obj = &PolicyOperands{} // returning empty if not found
+	}
+}
+
+//Policy parses policies from ZPA
+type Policy struct {
+	Action                   string              `json:"action"`
+	ActionID                 string              `json:"actionId"`
+	AppServerGroups          []ServerGroup       `json:"appServerGroups"`
+	AppConnectorGroups       []AppConnectorGroup `json:"appConnectorGroups"`
+	BypassDefaultRule        bool                `json:"bypassDefaultRule"`
+	Conditions               []PolicyConditions  `json:"conditions"`
+	CreationTime             string              `json:"creationTime"`
+	CustomMsg                string              `json:"customMsg"`
+	DefaultRule              bool                `json:"defaultRule"`
+	Description              string              `json:"description"`
+	ID                       string              `json:"id"`
+	IsolationDefaultRule     bool                `json:"isolationDefaultRule"`
+	ModifiedBy               string              `json:"modifiedBy"`
+	ModifiedTime             string              `json:"modifiedTime"`
+	Name                     string              `json:"name"`
+	Operator                 string              `json:"operator"`
+	PolicySetID              string              `json:"policySetId"`
+	PolicyType               string              `json:"policyType"`
+	Priority                 string              `json:"priority"`
+	ReauthDefaultRule        bool                `json:"reauthDefaultRule"`
+	ReauthIdleTimeout        string              `json:"reauthIdleTimeout"`
+	ReauthTimeout            string              `json:"reauthTimeout"`
+	RuleOrder                string              `json:"ruleOrder"`
+	LssDefaultRule           bool                `json:"lssDefaultRule"`
+	ZpnCbiProfileID          string              `json:"zpnCbiProfileId"`
+	ZpnInspectionProfileID   string              `json:"zpnInspectionProfileId"`
+	ZpnInspectionProfileName string              `json:"zpnInspectionProfileName"`
+}
+
+//Create creates the object on the ZPA tenant registered with the client
+func (obj Policy) Create(c *Client) (string, error) {
+	return c.AddPolicy(obj)
+}
+
+//ResetID Only add objects if references to them exist on the map map[OldID]newID
+func (obj *Policy) ResetID(m map[string]string) {
+	//Reset own ID
+	id, ok := m[obj.ID]
+	if ok {
+		obj.ID = id
+	}
+	//start with empty objects, only add object if ID exist. Reset ID
+	var connGrp []AppConnectorGroup
+	var SrvGrp []ServerGroup
+	var conditions []PolicyConditions
+	//Checking app connector groups
+	for _, v := range obj.AppConnectorGroups {
+		v.ResetID(m)
+		connGrp = append(connGrp, v)
+	}
+	obj.AppConnectorGroups = connGrp
+	//Checking Server groups
+	for _, v := range obj.AppServerGroups {
+		v.ResetID(m)
+		SrvGrp = append(SrvGrp, v)
+	}
+	obj.AppServerGroups = SrvGrp
+	//conditions
+	for _, v := range obj.Conditions {
+		v.ResetID(m)
+		conditions = append(conditions, v)
+	}
+	obj.Conditions = conditions
+}
+
+//GetID return the object ID
+func (obj Policy) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//PagedResponse parses http response from a paged GET request. List will be parsed later to the right object
+type PagedResponse struct {
+	Pages string          `json:"totalPages"`
+	List  json.RawMessage `json:"list"`
+}
+
+//Creating object interface for ZPA objects that can be created with a Post request
+type ObjectCreate interface {
+	GetID() (string, string)
+	Create(*Client) (string, error)
+}
+
+//Resettable Pointer allows to modify object and delete invalid references to non existing object IDs
+type Resettable[B any] interface {
+	ResetID(map[string]string)
+	*B // non-interface type constraint element
+}
+
+//Struct helpers
+
+//NamedID helps json structs with name and id
+type NameID struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+////////////////////////
+//Section for API calls
+////////////////////////
+
+//GetAppSegments gets a list of app segments
+func (c *Client) GetAppSegments() ([]AppSegment, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
+	return GetPaged(c, 500, path, []AppSegment{})
+}
+
+//AddAppSegment adds an app segments
+func (c *Client) AddAppSegment(obj AppSegment) (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
+	tmp, err := PostObj(c, path, obj)
+	return tmp.ID, err
+}
+
+//EditAppSegment edits the provided app segment
+func (c *Client) EditAppSegment(obj AppSegment) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
+	return PutObj(c, path, obj, obj.ID)
+}
+
+//DeleteAppSegment edits the provided app segment
+func (c *Client) DeleteAppSegment(id string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
+	return DelObj(c, path, id)
+}
+
+//GetSegmentGroups gets a list of segment groups
+func (c *Client) GetSegmentGroups() ([]SegmentGroup, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
+	return GetPaged(c, 500, path, []SegmentGroup{})
+}
+
+//AddSegmentGroup adds an app segments
+func (c *Client) AddSegmentGroup(obj SegmentGroup) (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
+	tmp, err := PostObj(c, path, obj)
+	return tmp.ID, err
+}
+
+//EditSegmentGroup edits the provided app segment
+func (c *Client) EditSegmentGroup(obj SegmentGroup) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
+	return PutObj(c, path, obj, obj.ID)
+}
+
+//DeleteSegmentGroup edits the provided app segment
+func (c *Client) DeleteSegmentGroup(id string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
+	return DelObj(c, path, id)
+}
+
+//GetServers gets a list of servers
+func (c *Client) GetServers() ([]Server, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
+	return GetPaged(c, 500, path, []Server{})
+}
+
+//AddServer adds a server
+func (c *Client) AddServer(obj Server) (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
+	tmp, err := PostObj(c, path, obj)
+	return tmp.ID, err
+}
+
+//EditServer edits the provided server
+func (c *Client) EditServer(obj Server) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
+	return PutObj(c, path, obj, obj.ID)
+}
+
+//DeleteServer edits the provided server
+func (c *Client) DeleteServer(id string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
+	return DelObj(c, path, id)
+}
+
+//GetServers gets a list of servers
+func (c *Client) GetServerGroups() ([]ServerGroup, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
+	return GetPaged(c, 500, path, []ServerGroup{})
+}
+
+//AddServer adds a server
+func (c *Client) AddServerGroup(obj ServerGroup) (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
+	tmp, err := PostObj(c, path, obj)
+	return tmp.ID, err
+}
+
+//EditServer edits the provided server
+func (c *Client) EditServerGroup(obj ServerGroup) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
+	return PutObj(c, path, obj, obj.ID)
+}
+
+//DeleteServer edits the provided server
+func (c *Client) DeleteServerGroup(id string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
+	return DelObj(c, path, id)
+}
+
+//GetAppConnectors gets a list of all app connectors
+func (c *Client) GetAppConnectors() ([]AppConnector, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/connector"
+	return GetPaged(c, 500, path, []AppConnector{})
+}
+
+//EditAppConnector edits the provided AppConnector
+func (c *Client) EditAppConnector(obj AppConnector) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/connector"
+	return PutObj(c, path, obj, obj.ID)
+}
+
+//DeleteAppConnector edits the provided AppConnector
+func (c *Client) DeleteAppConnector(id string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/connector"
+	return DelObj(c, path, id)
+}
+
+//GetAppConnectorGroups gets a list of all app connectors
+func (c *Client) GetAppConnectorGroups() ([]AppConnectorGroup, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
+	return GetPaged(c, 500, path, []AppConnectorGroup{})
+}
+
+//AddAppConnectorGroup adds a AppConnectorGroup
+func (c *Client) AddAppConnectorGroup(obj AppConnectorGroup) (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
+	tmp, err := PostObj(c, path, obj)
+	return tmp.ID, err
+}
+
+//EditAppConnectorGroup edits the provided AppConnectorGroup
+func (c *Client) EditAppConnectorGroup(obj AppConnectorGroup) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
+	return PutObj(c, path, obj, obj.ID)
+}
+
+//DeleteAppConnectorGroup edits the provided AppConnectorGroup
+func (c *Client) DeleteAppConnectorGroup(id string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
+	return DelObj(c, path, id)
+}
+
+//GetAccessPolicyID gets the global ID for your access policies
+func (c *Client) GetAccessPolicyID() (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/ACCESS_POLICY"
+	obj, err := GetObj(c, path, Policy{})
+	return obj.ID, err
+}
+
+//GetReAuthPolicyID gets the global ID for your re-authentication policies
+func (c *Client) GetReAuthPolicyID() (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/REAUTH_POLICY"
+	obj, err := GetObj(c, path, Policy{})
+	return obj.ID, err
+}
+
+//GetSIEMPolicyID gets the global ID for your SIEM policies
+func (c *Client) GetSIEMPolicyID() (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/SIEM_POLICY"
+	obj, err := GetObj(c, path, Policy{})
+	return obj.ID, err
+}
+
+//GetBypassPolicyID gets the global ID for your bypass policies
+func (c *Client) GetBypassPolicyID() (string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/BYPASS_POLICY"
+	obj, err := GetObj(c, path, Policy{})
+	return obj.ID, err
+}
+
+//GetAccessPolicies gets a list your access policies
+func (c *Client) GetAccessPolicies() ([]Policy, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/ACCESS_POLICY"
+	return GetPaged(c, 500, path, []Policy{})
+}
+
+//GetAccessPolicies gets a list of your reauth policies
+func (c *Client) GetReAuthPolicies() ([]Policy, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/REAUTH_POLICY"
+	return GetPaged(c, 500, path, []Policy{})
+}
+
+//GetAccessPolicies gets a list of your SIEM policies
+func (c *Client) GetSIEMPolicies() ([]Policy, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/SIEM_POLICY"
+	return GetPaged(c, 500, path, []Policy{})
+}
+
+//GetAccessPolicies gets a list of your bypass policies
+func (c *Client) GetBypassPolicies() ([]Policy, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/BYPASS_POLICY"
+	return GetPaged(c, 500, path, []Policy{})
+}
+
+//AddPolicy adds a policy to the specified policy set
+//Accepted policy type options are "access", "reauth", "siem", "bypass"
+//Function NewClient() returns a client with the policyIDs, if you're not using this function make sure the client has those variables.
+//You can use functions GetXXXXPolicyID() to get the needed policy ID
+func (c *Client) AddPolicy(obj Policy) (string, error) {
+	path := ""
+	if c.Policy == "access" {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.AccessID + "/rule"
+	} else if c.Policy == "reauth" {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.ReauthID + "/rule"
+	} else if c.Policy == "siem" {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.SiemID + "/rule"
+	} else if c.Policy == "bypass" {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.BypassID + "/rule"
+	} else {
+		return "", errors.New("Please request the right policy type.")
+	}
+	postBody, _ := json.Marshal(obj)
+	body, err := c.postRequest(path, postBody)
+	if err != nil {
+		return obj.ID, err
+	}
+	err = json.Unmarshal(body, &obj)
+	if err != nil {
+		return obj.ID, err
+	}
+	return obj.ID, nil
+}
+
+//EditPolicy edits the policy to the specified policy set and the ID on the passed Policy object.
+//you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
+func (c *Client) EditPolicy(obj Policy, policySetID string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + policySetID + "/rule/" + obj.ID
+	postBody, _ := json.Marshal(obj)
+	return c.putRequest(path, postBody)
+}
+
+//DeletePolicy edits the policy to the specified policy set and the ID on the passed Policy object.
+//you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
+func (c *Client) DeletePolicy(obj Policy, policySetID string) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + policySetID + "/rule/" + obj.ID
+	return c.deleteRequest(path)
+}
+
+//Reorder edits the policy to the specified policy set based on the passed new order
+//you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
+func (c *Client) ReorderPolicy(ruleID string, policySetID string, newOrder int) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + policySetID + "/rule/" + ruleID + "/reorder/" + strconv.Itoa(newOrder)
+	return c.putRequest(path, nil)
+}
+
+//////////////////
+//Helper functions
+//////////////////
+//Generic functions to iterate over all paged results, requieres a client, pagesize usually default is 50 and max 500, and the object the response will be unmarshalled to.
+func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error) {
+	//Init struct to parse response
+	var res PagedResponse
+	//Setting the 1st page number
+	page := 1
+	//Creating tmp struct to unmarshal to.
+	tmp := obj
+	//iterating over all pages to get all
+	for {
+		npath := path + "?page=" + strconv.Itoa(page) + "&pagesize=" + strconv.Itoa(pageSize)
+		body, err := c.getRequest(npath)
+		if err != nil {
+			return obj, err
+		}
+		// Unmarshal response
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			return obj, err
+		}
+		//Unmarshall List into object
+		err = json.Unmarshal(res.List, &tmp)
+		if err != nil {
+			return obj, err
+		}
+		obj = append(obj, tmp...)
+		//Getting total pages and checking which page we're iterating with
+		tpage, err := strconv.Atoi(res.Pages)
+		if err != nil {
+			return obj, err
+		}
+		if tpage <= page {
+			break
+		} else {
+			page += 1
+		}
+	}
+	return obj, nil
+}
+
+//PostObj : Generic function to marshal an object and send it as HTTP post
+func PostObj[K any](c *Client, path string, obj K) (K, error) {
+	postBody, _ := json.Marshal(obj)
+	body, err := c.postRequest(path, postBody)
+	if err != nil {
+		return obj, err
+	}
+	err = json.Unmarshal(body, &obj)
+	if err != nil {
+		return obj, err
+	}
+	return obj, nil
+}
+
+//Get : Generic function to marshal a GET request
+func GetObj[K any](c *Client, path string, tmp K) (K, error) {
+	body, err := c.getRequest(path)
+	if err != nil {
+		return tmp, err
+	}
+	err = json.Unmarshal(body, &tmp)
+	if err != nil {
+		return tmp, err
+	}
+	return tmp, nil
+}
+
+//PutObj : Generic function to marshal an object and send it as HTTP put
+func PutObj[K any](c *Client, path string, obj K, id string) error {
+	path += "/" + id
+	postBody, _ := json.Marshal(obj)
+	return c.putRequest(path, postBody)
+}
+
+//DelObj : Generic function to delete an object based on its id
+func DelObj(c *Client, path string, id string) error {
+	path += "/" + id
+	return c.deleteRequest(path)
 }
 
 //do Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
+	//Adding auth header
+	req.Header.Add("Authorization", "Bearer "+c.Token)
 	return c.doWithOptions(req, retryMax)
 }
 
@@ -106,50 +1034,124 @@ func httpStatusCheck(resp *http.Response) error {
 	}
 }
 
-//NewClient returns a client with the auth header, default http timeouts and max retries per requests
-//func NewClient(BaseURL string, client_id string, client_secret string) (*Client, error) {
-//	access_token, err := KeyGen(BaseURL, client_id, client_secret)
-//	if err != nil {
-//		return &Client{}, err
-//	}
-//	u, err := url.Parse(BaseURL)
-//	if err != nil {
-//		return &Client{}, errors.New("failed to parse API URL")
-//	}
-//	CookieJar.SetCookies(u, cookie)
-//	return &Client{
-//		BaseURL: BaseURL,
-//		HTTPClient: &http.Client{
-//			Jar:     CookieJar,
-//			Timeout: time.Second * 10,
-//		},
-//		RetryMax: 10,
-//	}, nil
-//}
-
-//KeyGen function gets the authentication parameter and returns the JSESSIONID which is the cookie that authenticates the requests
-func KeyGen(BaseURL string, client_id string, client_secret string) (string, error) {
-	postBody, err := json.Marshal(map[string]string{
-		"client_id":     client_id,
-		"client_secret": client_secret,
-	})
+//NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
+func NewClientBase(BaseURL string, client_id string, client_secret string, CustomerId string) (*Client, error) {
+	//Validating URL
+	_, err := url.Parse(BaseURL)
 	if err != nil {
-		return "", err
+		return &Client{}, errors.New("failed to parse API URL")
 	}
-	data := bytes.NewBuffer(postBody)
+	//Getting access token
+	access_token, err := KeyGen(BaseURL, client_id, client_secret)
+	if err != nil {
+		return &Client{}, err
+	}
+	//Returning client
+	return &Client{
+		BaseURL: BaseURL,
+		HTTPClient: &http.Client{
+			Timeout: time.Second * 10,
+		},
+		RetryMax:   10,
+		Token:      access_token,
+		CustomerId: CustomerId,
+	}, nil
+}
+
+//NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
+//In addition it adds the policy IDs for ZPA
+func NewClient(BaseURL string, client_id string, client_secret string, CustomerId string) (*Client, error) {
+	//Getting a base client
+	c, err := NewClientBase(BaseURL, client_id, client_secret, CustomerId)
+	if err != nil {
+		return c, err
+	}
+	//Getting policy ID
+	c.AccessID, err = c.GetAccessPolicyID()
+	if err != nil {
+		return c, err
+	}
+	//Getting reauth policy ID
+	c.ReauthID, err = c.GetReAuthPolicyID()
+	if err != nil {
+		return c, err
+	}
+	//Getting SIEM policy ID
+	c.SiemID, err = c.GetSIEMPolicyID()
+	if err != nil {
+		return c, err
+	}
+	//Getting reauth policy ID
+	c.BypassID, err = c.GetBypassPolicyID()
+	if err != nil {
+		return c, err
+	}
+	return c, err
+}
+
+//KeyGen function gets the authentication parameter and returns the bearer token which is the header that authenticates the requests
+func KeyGen(BaseURL string, client_id string, client_secret string) (string, error) {
+	form := url.Values{}
+	form.Add("client_id", client_id)
+	form.Add("client_secret", client_secret)
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
-	resp, err := client.Post(BaseURL+"/signin", "application/x-www-form-urlencoded", data)
+	resp, err := client.Post(BaseURL+"/signin", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	// b, err := ioutil.ReadAll(resp.Body)  Go.1.15 and earlier
+	//Check for anything but an http 200 and then parse body
+	err = httpStatusCheck(resp)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(string(b))
-	return "", errors.New("can't authenticate please check credentials,base url or apikey")
+	//Parsing response
+	var token myToken
+	err = json.NewDecoder(resp.Body).Decode(&token)
+	if err != nil {
+		return "", err
+	}
+	return token.Token, nil
+}
+
+//postRequest Process and sends HTTP POST requests
+func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
+	data := bytes.NewBuffer(payload)
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, data)
+	if err != nil {
+		return nil, err
+	}
+	return c.do(req)
+}
+
+//getRequest Process and sends HTTP GET requests
+func (c *Client) getRequest(path string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.do(req)
+}
+
+//Process and sends HTTP PUT requests
+func (c *Client) putRequest(path string, payload []byte) error {
+	data := bytes.NewBuffer(payload)
+	req, err := http.NewRequest(http.MethodPut, c.BaseURL+path, data)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(req)
+	return err
+}
+
+//Process and sends HTTP PUT requests
+func (c *Client) deleteRequest(path string) error {
+	req, err := http.NewRequest(http.MethodDelete, c.BaseURL+path, nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(req)
+	return err
 }

@@ -716,6 +716,14 @@ func (c *Client) GetUsersPaged(page int, pageSize int) ([]User, error) {
 	return res, nil
 }
 
+//UpdateUser updates the user info using the provided user object
+func (c *Client) UpdateUser(user User) error {
+	path := "/users/" + strconv.Itoa(user.ID)
+	postBody, _ := json.Marshal(user)
+	err := c.putRequest(path, postBody)
+	return err
+}
+
 //GetSublocations gets a list of sublocations from the received location id
 func (c *Client) GetSublocations(id int) ([]Location, error) {
 	path := "/locations/" + strconv.Itoa(id) + "/sublocations"
