@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -255,11 +256,11 @@ type LocationGroup struct {
 
 //Department parses user departments
 type Department struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	IdpID    int    `json:"idpId"`
-	Comments string `json:"comments"`
-	Deleted  bool   `json:"deleted"`
+	ID       int    `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	IdpID    int    `json:"idpId,omitempty"`
+	Comments string `json:"comments,omitempty"`
+	Deleted  bool   `json:"deleted,omitempty"`
 }
 
 //UserGroup parses UserGroup
@@ -275,13 +276,13 @@ type User struct {
 	ID            int         `json:"id"`
 	Name          string      `json:"name"`
 	Email         string      `json:"email"`
-	Groups        []UserGroup `json:"groups"`
-	Department    Department  `json:"department"`
-	Comments      string      `json:"comments"`
-	TempAuthEmail string      `json:"tempAuthEmail"`
-	Password      string      `json:"password"`
-	AdminUser     bool        `json:"adminUser"`
-	Type          string      `json:"type"`
+	Groups        []UserGroup `json:"groups,omitempty"`
+	Department    Department  `json:"department,omitempty"`
+	Comments      string      `json:"comments,omitempty"`
+	TempAuthEmail string      `json:"tempAuthEmail,omitempty"`
+	Password      string      `json:"password,omitempty"`
+	AdminUser     bool        `json:"adminUser,omitempty"`
+	Type          string      `json:"type,omitempty"`
 }
 
 //BlockedUrls parses responses for blocked urls
@@ -299,6 +300,55 @@ type UrlLookup struct {
 	URL       string   `json:"url"`
 	URLCat    []string `json:"urlClassifications"`
 	URLCatSec []string `json:"urlClassificationsWithSecurityAlert"`
+}
+
+//DLPDictionary holds the DLP dictionaries from ZIA
+type DLPDictionary struct {
+	ID                      int          `json:"id,omitempty"`
+	Name                    string       `json:"name,omitempty"`
+	Description             string       `json:"description,omitempty"`
+	ConfidenceThreshold     string       `json:"confidenceThreshold,omitempty"`
+	Phrases                 []Phrase     `json:"phrases,omitempty"`
+	CustomPhraseMatchType   string       `json:"customPhraseMatchType,omitempty"`
+	Patterns                []Pattern    `json:"patterns,omitempty"`
+	DictionaryType          string       `json:"dictionaryType,omitempty"`
+	ExactDataMatchDetails   []EDMDetails `json:"exactDataMatchDetails,omitempty"`
+	IdmProfileMatchAccuracy []IDMProfile `json:"idmProfileMatchAccuracy,omitempty"`
+	Proximity               int          `json:"proximity,omitempty"`
+}
+
+//Phrases holds DLP dictionary phrases
+type Phrase struct {
+	Action string `json:"action,omitempty"`
+	Phrase string `json:"phrase,omitempty"`
+}
+
+//Pattern holds DLP dictionary Patterns
+type Pattern struct {
+	Action  string `json:"action,omitempty"`
+	Pattern string `json:"pattern,omitempty"`
+}
+
+//EDMDetails holds EDM details from DLP dictionary
+type EDMDetails struct {
+	DictionaryEdmMappingID int    `json:"dictionaryEdmMappingId,omitempty"`
+	SchemaID               int    `json:"schemaId,omitempty"`
+	PrimaryField           int    `json:"primaryField,omitempty"`
+	SecondaryFields        []int  `json:"secondaryFields,omitempty"`
+	SecondaryFieldMatchOn  string `json:"secondaryFieldMatchOn,omitempty"`
+}
+
+//IDMProfile holds IDM details from DLP dictionary
+type IDMProfile struct {
+	AdpIdmProfile struct {
+		ID         int `json:"id,omitempty"`
+		Extensions struct {
+			AdditionalProp1 string `json:"additionalProp1,omitempty"`
+			AdditionalProp2 string `json:"additionalProp2,omitempty"`
+			AdditionalProp3 string `json:"additionalProp3,omitempty"`
+		} `json:"extensions,omitempty"`
+	} `json:"adpIdmProfile,omitempty"`
+	MatchAccuracy string `json:"matchAccuracy,omitempty"`
 }
 
 //Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
@@ -786,6 +836,35 @@ func (c *Client) GetUrlCats() ([]UrlCat, error) {
 }
 
 //AddUrlRule adds a URL filtering category
+func (c *Client) GetDLPDictionaries() ([]DLPDictionary, error) {
+	res := []DLPDictionary{}
+	body, err := c.getRequest("/dlpDictionaries")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+//AddUrlRule adds a URL filtering category
+func (c *Client) AddDLPDictionary(obj DLPDictionary) (int, error) {
+	res := DLPDictionary{}
+	postBody, _ := json.Marshal(obj)
+	body, err := c.postRequest("/dlpDictionaries", postBody)
+	if err != nil {
+		return 0, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, nil
+}
+
+//AddUrlRule adds a URL filtering category
 func (c *Client) AddUrlCat(category UrlCat) (string, error) {
 	res := UrlCat{}
 	postBody, _ := json.Marshal(category)
@@ -970,7 +1049,8 @@ func httpStatusCheck(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		return nil
 	} else if resp.StatusCode == 400 {
-		return errors.New("HTTP error: Invalid or bad request")
+		b, _ := io.ReadAll(resp.Body)
+		return errors.New("HTTP error: Invalid or bad request" + string(b))
 	} else if resp.StatusCode == 401 {
 		return errors.New("HTTP error: Session is not authenticated or timed out")
 	} else if resp.StatusCode == 403 {

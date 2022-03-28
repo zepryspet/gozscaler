@@ -152,7 +152,7 @@ type AppSegment struct {
 	UDPPortRanges        []string         `json:"udpPortRanges"`
 }
 
-//GetID return the object ID
+//GetID returns: name , objectID
 func (obj AppSegment) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
@@ -163,7 +163,8 @@ func (obj AppSegment) Create(c *Client) (string, error) {
 }
 
 //ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *AppSegment) ResetID(m map[string]string) {
+func (obj *AppSegment) ResetID(m map[string]string) bool {
+	notFound := false
 	//Reset own ID
 	id, ok := m[obj.ID]
 	if ok {
@@ -200,6 +201,7 @@ func (obj *AppSegment) ResetID(m map[string]string) {
 	var iapps []InspectionApps
 	obj.CommonAppsDto = capps
 	obj.InspectionApps = iapps
+	return notFound
 }
 
 //SegmentGroup parses segment groups
@@ -217,7 +219,7 @@ type SegmentGroup struct {
 	TCPKeepAliveEnabled string       `json:"tcpKeepAliveEnabled"`
 }
 
-//GetID return the object ID
+//GetID return the object name, ID
 func (obj SegmentGroup) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
@@ -228,7 +230,8 @@ func (obj SegmentGroup) Create(c *Client) (string, error) {
 }
 
 //ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *SegmentGroup) ResetID(m map[string]string) {
+func (obj *SegmentGroup) ResetID(m map[string]string) bool {
+	notFound := false
 	//Reset own ID
 	id, ok := m[obj.ID]
 	if ok {
@@ -245,6 +248,7 @@ func (obj *SegmentGroup) ResetID(m map[string]string) {
 		}
 	}
 	obj.Applications = Segment
+	return notFound
 }
 
 //Servers parses zpa servers
@@ -261,7 +265,7 @@ type Server struct {
 	Name              string   `json:"name"`
 }
 
-//GetID return the object ID
+//GetID return the object name, ID
 func (obj Server) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
@@ -272,7 +276,8 @@ func (obj Server) Create(c *Client) (string, error) {
 }
 
 //ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *Server) ResetID(m map[string]string) {
+func (obj *Server) ResetID(m map[string]string) bool {
+	notFound := false
 	//Reset own ID
 	id, ok := m[obj.ID]
 	if ok {
@@ -288,6 +293,7 @@ func (obj *Server) ResetID(m map[string]string) {
 		}
 	}
 	obj.AppServerGroupIds = SrvGrp
+	return notFound
 }
 
 //ServerGroup parses zpa servers
@@ -307,7 +313,7 @@ type ServerGroup struct {
 	Servers            []Server            `json:"servers,omitempty"`
 }
 
-//GetID return the object ID
+//GetID return the object name,ID
 func (obj ServerGroup) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
@@ -318,11 +324,14 @@ func (obj ServerGroup) Create(c *Client) (string, error) {
 }
 
 //ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *ServerGroup) ResetID(m map[string]string) {
+func (obj *ServerGroup) ResetID(m map[string]string) bool {
+	notFound := false
 	//Reset own ID
 	id, ok := m[obj.ID]
 	if ok {
 		obj.ID = id
+	} else {
+		notFound = true
 	}
 	//start with empty objects, only add object if ID exist. Reset ID
 	var apps []NameID
@@ -350,6 +359,7 @@ func (obj *ServerGroup) ResetID(m map[string]string) {
 		server = append(server, v)
 	}
 	obj.Servers = server
+	return notFound
 }
 
 //AppConnector parses app connectors
@@ -396,7 +406,7 @@ type AppConnector struct {
 	UpgradeStatus  string `json:"upgradeStatus"`
 }
 
-//GetID return the object ID
+//GetID return the object name, ID
 func (obj AppConnector) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
@@ -418,7 +428,7 @@ type AppConnectorGroup struct {
 	ModifiedBy                    string         `json:"modifiedBy,omitempty"`
 	ModifiedTime                  string         `json:"modifiedTime,omitempty"`
 	Name                          string         `json:"name,omitempty"`
-	OverrideVersionProfile        bool           `json:"overrideVersionProfile,omitempty"`
+	OverrideVersionProfile        bool           `json:"overrideVersionProfile"`
 	ServerGroups                  []ServerGroup  `json:"serverGroups,omitempty"`
 	LssAppConnectorGroup          bool           `json:"lssAppConnectorGroup,omitempty"`
 	UpgradeDay                    string         `json:"upgradeDay,omitempty"`
@@ -428,7 +438,7 @@ type AppConnectorGroup struct {
 	VersionProfileVisibilityScope string         `json:"versionProfileVisibilityScope,omitempty"`
 }
 
-//GetID return the object ID
+//GetID return the object name,ID
 func (obj AppConnectorGroup) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
@@ -439,22 +449,33 @@ func (obj AppConnectorGroup) Create(c *Client) (string, error) {
 }
 
 //ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *AppConnectorGroup) ResetID(m map[string]string) {
+func (obj *AppConnectorGroup) ResetID(m map[string]string) bool {
+	notFound := false
 	//Reset own ID
 	id, ok := m[obj.ID]
 	if ok {
 		obj.ID = id
+	} else {
+		notFound = true
 	}
 	//start with empty objects, only add object if ID exist. Reset ID
 	var conn []AppConnector
 	var SrvGrp []ServerGroup
 	//Checking app connector
+	tmp := ""
 	for _, v := range obj.Connectors {
 		id, ok := m[v.ID]
 		if ok {
 			v.ID = id
 			conn = append(conn, v)
+		} else {
+			tmp += v.Name
 		}
+	}
+	//Adding removed app connectors to descriptions
+	if tmp != "" {
+		obj.Description += "\n ---->Deleted non-configured app connectors:" + tmp
+		notFound = true
 	}
 	obj.Connectors = conn
 	//Checking Server groups
@@ -466,84 +487,64 @@ func (obj *AppConnectorGroup) ResetID(m map[string]string) {
 		}
 	}
 	obj.ServerGroups = SrvGrp
+	return notFound
 }
 
 //PolicyConditions holds conditions for zpa policies
+//check https://help.zscaler.com/zpa/access-policy-use-cases for valid options
 type PolicyConditions struct {
-	CreationTime string           `json:"creationTime"`
-	ID           string           `json:"id"`
-	ModifiedBy   string           `json:"modifiedBy"`
-	ModifiedTime string           `json:"modifiedTime"`
-	Negated      bool             `json:"negated"`
+	CreationTime string           `json:"creationTime,omitempty"`
+	ID           string           `json:"id,omitempty"`
+	ModifiedBy   string           `json:"modifiedBy,omitempty"`
+	ModifiedTime string           `json:"modifiedTime,omitempty"`
+	Negated      bool             `json:"negated,omitempty"`
 	Operands     []PolicyOperands `json:"operands"`
-	Operator     string           `json:"operator"`
-}
-
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *PolicyConditions) ResetID(m map[string]string) {
-	var operands []PolicyOperands
-	//it seems that only RHS IDs need to be changed. other IDs don't seem to fall under global IDs
-	for _, v := range obj.Operands {
-		v.ResetID(m)
-		operands = append(operands, v)
-	}
-	obj.Operands = operands
+	Operator     string           `json:"operator"` //Options: OR, AND
 }
 
 //PolicyConditions holds PolicyOperands for PolicyConditions used in zpa policies
+//check https://help.zscaler.com/zpa/access-policy-use-cases for valid options
 type PolicyOperands struct {
-	CreationTime string `json:"creationTime"`
-	ID           string `json:"id"`
-	IdpID        string `json:"idpId"`
-	LHS          string `json:"lhs"`
-	ModifiedBy   string `json:"modifiedBy"`
-	ModifiedTime string `json:"modifiedTime"`
-	Name         string `json:"name"`
-	ObjectType   string `json:"objectType"`
-	RHS          string `json:"rhs"`
-}
-
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *PolicyOperands) ResetID(m map[string]string) {
-	//it seems that only RHS IDs need to be changed. other IDs don't seem to fall under global IDs
-	//Reset own ID
-	id, ok := m[obj.RHS]
-	if ok {
-		obj.RHS = id
-	} else {
-		obj = &PolicyOperands{} // returning empty if not found
-	}
+	CreationTime string `json:"creationTime,omitempty"`
+	ID           string `json:"id,omitempty"`
+	IdpID        string `json:"idpId,omitempty"`
+	LHS          string `json:"lhs,omitempty"`
+	ModifiedBy   string `json:"modifiedBy,omitempty"`
+	ModifiedTime string `json:"modifiedTime,omitempty"`
+	Name         string `json:"name,omitempty"`
+	ObjectType   string `json:"objectType,omitempty"`
+	RHS          string `json:"rhs,omitempty"`
 }
 
 //Policy parses policies from ZPA
 type Policy struct {
-	Action                   string              `json:"action"`
-	ActionID                 string              `json:"actionId"`
-	AppServerGroups          []ServerGroup       `json:"appServerGroups"`
-	AppConnectorGroups       []AppConnectorGroup `json:"appConnectorGroups"`
-	BypassDefaultRule        bool                `json:"bypassDefaultRule"`
-	Conditions               []PolicyConditions  `json:"conditions"`
-	CreationTime             string              `json:"creationTime"`
-	CustomMsg                string              `json:"customMsg"`
-	DefaultRule              bool                `json:"defaultRule"`
-	Description              string              `json:"description"`
-	ID                       string              `json:"id"`
-	IsolationDefaultRule     bool                `json:"isolationDefaultRule"`
-	ModifiedBy               string              `json:"modifiedBy"`
-	ModifiedTime             string              `json:"modifiedTime"`
+	Action                   string              `json:"action"` //Supported values: ALLOW (default value) or DENY
+	ActionID                 string              `json:"actionId,omitempty"`
+	AppServerGroups          []ServerGroup       `json:"appServerGroups,omitempty"`
+	AppConnectorGroups       []AppConnectorGroup `json:"appConnectorGroups,omitempty"`
+	BypassDefaultRule        bool                `json:"bypassDefaultRule,omitempty"`
+	Conditions               []PolicyConditions  `json:"conditions,omitempty"` //Array of operands with conditions to match the rule on
+	CreationTime             string              `json:"creationTime,omitempty"`
+	CustomMsg                string              `json:"customMsg,omitempty"`
+	DefaultRule              bool                `json:"defaultRule,omitempty"`
+	Description              string              `json:"description,omitempty"`
+	ID                       string              `json:"id,omitempty"`
+	IsolationDefaultRule     bool                `json:"isolationDefaultRule,omitempty"`
+	ModifiedBy               string              `json:"modifiedBy,omitempty"`
+	ModifiedTime             string              `json:"modifiedTime,omitempty"`
 	Name                     string              `json:"name"`
-	Operator                 string              `json:"operator"`
-	PolicySetID              string              `json:"policySetId"`
-	PolicyType               string              `json:"policyType"`
-	Priority                 string              `json:"priority"`
-	ReauthDefaultRule        bool                `json:"reauthDefaultRule"`
-	ReauthIdleTimeout        string              `json:"reauthIdleTimeout"`
-	ReauthTimeout            string              `json:"reauthTimeout"`
-	RuleOrder                string              `json:"ruleOrder"`
-	LssDefaultRule           bool                `json:"lssDefaultRule"`
-	ZpnCbiProfileID          string              `json:"zpnCbiProfileId"`
-	ZpnInspectionProfileID   string              `json:"zpnInspectionProfileId"`
-	ZpnInspectionProfileName string              `json:"zpnInspectionProfileName"`
+	Operator                 string              `json:"operator,omitempty"`
+	PolicySetID              string              `json:"policySetId,omitempty"`
+	PolicyType               string              `json:"policyType,omitempty"`
+	Priority                 string              `json:"priority,omitempty"`
+	ReauthDefaultRule        bool                `json:"reauthDefaultRule,omitempty"`
+	ReauthIdleTimeout        string              `json:"reauthIdleTimeout,omitempty"`
+	ReauthTimeout            string              `json:"reauthTimeout,omitempty"`
+	RuleOrder                string              `json:"ruleOrder,omitempty"`
+	LssDefaultRule           bool                `json:"lssDefaultRule,omitempty"`
+	ZpnCbiProfileID          string              `json:"zpnCbiProfileId,omitempty"`
+	ZpnInspectionProfileID   string              `json:"zpnInspectionProfileId,omitempty"`
+	ZpnInspectionProfileName string              `json:"zpnInspectionProfileName,omitempty"`
 }
 
 //Create creates the object on the ZPA tenant registered with the client
@@ -552,7 +553,8 @@ func (obj Policy) Create(c *Client) (string, error) {
 }
 
 //ResetID Only add objects if references to them exist on the map map[OldID]newID
-func (obj *Policy) ResetID(m map[string]string) {
+func (obj *Policy) ResetID(m map[string]string) bool {
+	notFound := false
 	//Reset own ID
 	id, ok := m[obj.ID]
 	if ok {
@@ -563,26 +565,87 @@ func (obj *Policy) ResetID(m map[string]string) {
 	var SrvGrp []ServerGroup
 	var conditions []PolicyConditions
 	//Checking app connector groups
+	appc := ""
 	for _, v := range obj.AppConnectorGroups {
-		v.ResetID(m)
-		connGrp = append(connGrp, v)
+		found := v.ResetID(m)
+		if found {
+			connGrp = append(connGrp, v)
+		} else {
+			//Adding not found names to description and setting the nonFound flag.
+			n, _ := v.GetID()
+			appc += n + ","
+			notFound = true
+		}
+	}
+	if appc != "" {
+		obj.Description += "\n---->Deleted not found app connector groups: " + appc
 	}
 	obj.AppConnectorGroups = connGrp
 	//Checking Server groups
+	srv := ""
 	for _, v := range obj.AppServerGroups {
-		v.ResetID(m)
-		SrvGrp = append(SrvGrp, v)
+		found := v.ResetID(m)
+		if found {
+			SrvGrp = append(SrvGrp, v)
+		} else {
+			//Adding not ID names to description and setting the nonFound flag.
+			n, _ := v.GetID()
+			srv += n + ","
+			notFound = true
+		}
 	}
 	obj.AppServerGroups = SrvGrp
-	//conditions
-	for _, v := range obj.Conditions {
-		v.ResetID(m)
-		conditions = append(conditions, v)
+	if srv != "" {
+		obj.Description += "\n---->Deleted not found server groups: " + srv
 	}
+	//conditions
+	//Using https://help.zscaler.com/zpa/access-policy-use-cases#Viewanexampleresponse11 as reference
+	for _, v := range obj.Conditions {
+		condi := v
+		var operands []PolicyOperands
+		//it seems that only RHS IDs need to be changed. other IDs don't seem to fall under global IDs
+		for _, v := range v.Operands {
+			//RHS is the ID for the following types.
+			//https://help.zscaler.com/zpa/access-policy-use-cases
+			if v.ObjectType == "APP" || v.ObjectType == "APP_GROUP" || v.ObjectType == "CLOUD_CONNECTOR_GROUP" || v.ObjectType == "IDP" || v.ObjectType == "MACHINE_GRP" {
+				id, ok := m[v.RHS]
+				if ok {
+					v.RHS = id                     //Adding new ID
+					operands = append(operands, v) //appending it
+				} else {
+					obj.Description += "\n---->Deleted not found object type:\"" + v.ObjectType + "\" Name:\"" + v.Name + "\"."
+					notFound = true
+				}
+				//LHS
+			} else if v.ObjectType == "POSTURE" || v.ObjectType == "SAML" || v.ObjectType == "SCIM" || v.ObjectType == "SCIM_GROUP" || v.ObjectType == "TRUSTED_NETWORK" {
+				id, ok := m[v.LHS]
+				if ok {
+					v.LHS = id                     //Adding new ID
+					operands = append(operands, v) //appending it
+				} else {
+					obj.Description += "\n---->Deleted not found object type:\"" + v.ObjectType + "\" Name:\"" + v.Name + "\" Value:\"" + v.RHS + "\"."
+					notFound = true
+				}
+				//Do nothing with CLIENT_TYPE
+			} else if v.ObjectType == "CLIENT_TYPE" {
+				operands = append(operands, v)
+				//catch all
+			} else {
+				obj.Description += "\n---->Deleted not found criteria:\"" + v.ObjectType + "\" Name:\"" + v.Name + "\"."
+				notFound = true
+			}
+		}
+		//Saving changes if there's more than 1 operand
+		if len(operands) > 0 {
+			condi.Operands = operands
+			conditions = append(conditions, condi)
+		}
+	} //
 	obj.Conditions = conditions
+	return notFound
 }
 
-//GetID return the object ID
+//GetID return the object name, ID
 func (obj Policy) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
@@ -601,8 +664,101 @@ type ObjectCreate interface {
 
 //Resettable Pointer allows to modify object and delete invalid references to non existing object IDs
 type Resettable[B any] interface {
-	ResetID(map[string]string)
-	*B // non-interface type constraint element
+	*B                              // non-interface type constraint element
+	ResetID(map[string]string) bool // Resets IDs inside element bases on old, new map ID and returns true if it's own ID was modified
+}
+
+//IDP holds the idp information
+type IDP struct {
+	AdminMetadata struct {
+		CertificateURL string `json:"certificateUrl,omitempty"`
+		SpBaseURL      string `json:"spBaseUrl,omitempty"`
+		SpEntityID     string `json:"spEntityId,omitempty"`
+		SpMetadataURL  string `json:"spMetadataUrl,omitempty"`
+		SpPostURL      string `json:"spPostUrl,omitempty"`
+	} `json:"adminMetadata,omitempty"`
+	AdminSpSigningCertID int `json:"adminSpSigningCertId,omitempty"`
+	AutoProvision        int `json:"autoProvision,omitempty"`
+	Certificates         []struct {
+		CName          string `json:"cName,omitempty"`
+		Certificate    string `json:"certificate,omitempty"`
+		SerialNo       string `json:"serialNo,omitempty"`
+		ValidFromInSec int    `json:"validFromInSec,omitempty"`
+		ValidToInSec   int    `json:"validToInSec,omitempty"`
+	} `json:"certificates,omitempty"`
+	CreationTime                int      `json:"creationTime,omitempty"`
+	Description                 string   `json:"description,omitempty"`
+	DisableSamlBasedPolicy      bool     `json:"disableSamlBasedPolicy,omitempty"`
+	DomainList                  []string `json:"domainList,omitempty"`
+	EnableScimBasedPolicy       bool     `json:"enableScimBasedPolicy,omitempty"`
+	Enabled                     bool     `json:"enabled,omitempty"`
+	ID                          int      `json:"id,omitempty"`
+	IdpEntityID                 string   `json:"idpEntityId,omitempty"`
+	LoginNameAttribute          string   `json:"loginNameAttribute,omitempty"`
+	LoginURL                    string   `json:"loginUrl,omitempty"`
+	ModifiedBy                  int      `json:"modifiedBy,omitempty"`
+	ModifiedTime                int      `json:"modifiedTime,omitempty"`
+	Name                        string   `json:"name,omitempty"`
+	ReauthOnUserUpdate          bool     `json:"reauthOnUserUpdate,omitempty"`
+	RedirectBinding             bool     `json:"redirectBinding,omitempty"`
+	ScimEnabled                 bool     `json:"scimEnabled,omitempty"`
+	ScimServiceProviderEndpoint string   `json:"scimServiceProviderEndpoint,omitempty"`
+	ScimSharedSecretExists      bool     `json:"scimSharedSecretExists,omitempty"`
+	SignSamlRequest             int      `json:"signSamlRequest,omitempty"`
+	SsoType                     []string `json:"ssoType,omitempty"`
+	UseCustomSPMetadata         bool     `json:"useCustomSPMetadata,omitempty"`
+	UserMetadata                struct {
+		CertificateURL string `json:"certificateUrl,omitempty"`
+		SpBaseURL      string `json:"spBaseUrl,omitempty"`
+		SpEntityID     string `json:"spEntityId,omitempty"`
+		SpMetadataURL  string `json:"spMetadataUrl,omitempty"`
+		SpPostURL      string `json:"spPostUrl,omitempty"`
+	} `json:"userMetadata,omitempty"`
+	UserSpSigningCertID int `json:"userSpSigningCertId,omitempty"`
+}
+
+//SCIMAttr holds the IDP scim attributes
+type SCIMAttr struct {
+	CanonicalValues []string `json:"canonicalValues"`
+	CaseSensitive   bool     `json:"caseSensitive,omitempty"`
+	CreationTime    int      `json:"creationTime,omitempty"`
+	DataType        string   `json:"dataType,omitempty"`
+	Description     string   `json:"description,omitempty"`
+	ID              int      `json:"id,omitempty"`
+	IdpID           int      `json:"idpId,omitempty"`
+	ModifiedBy      int      `json:"modifiedBy,omitempty"`
+	ModifiedTime    int      `json:"modifiedTime,omitempty"`
+	Multivalued     bool     `json:"multivalued,omitempty"`
+	Mutability      string   `json:"mutability,omitempty"`
+	Name            string   `json:"name"`
+	Required        bool     `json:"required,omitempty"`
+	Returned        string   `json:"returned,omitempty"`
+	SchemaURI       string   `json:"schemaURI,omitempty"`
+	Uniqueness      bool     `json:"uniqueness,omitempty"`
+}
+
+//SCIMGroup holds the IDP scim groups
+type SCIMGroup struct {
+	CreationTime int    `json:"creationTime,omitempty"`
+	ID           int    `json:"id,omitempty,omitempty"`
+	IdpGroupID   string `json:"idpGroupId,omitempty"`
+	IdpID        int    `json:"idpId,omitempty"`
+	ModifiedTime int    `json:"modifiedTime,omitempty"`
+	Name         string `json:"name,omitempty"`
+}
+
+//PostureProfile holds the configured posture profiles
+type PostureProfile struct {
+	CreationTime      int    `json:"creationTime,omitempty"`
+	Domain            string `json:"domain,omitempty"`
+	ID                int    `json:"id,omitempty"`
+	MasterCustomerID  string `json:"masterCustomerId,omitempty"`
+	ModifiedBy        int    `json:"modifiedBy,omitempty"`
+	ModifiedTime      int    `json:"modifiedTime,omitempty"`
+	Name              string `json:"name,omitempty"`
+	PostureUdid       string `json:"postureUdid,omitempty"`
+	ZscalerCloud      string `json:"zscalerCloud,omitempty"`
+	ZscalerCustomerID int    `json:"zscalerCustomerId,omitempty"`
 }
 
 //Struct helpers
@@ -812,6 +968,36 @@ func (c *Client) GetBypassPolicies() ([]Policy, error) {
 	return GetPaged(c, 500, path, []Policy{})
 }
 
+//GetIDPs gets a list of your idps
+func (c *Client) GetIDPs() ([]IDP, error) {
+	path := "/mgmtconfig/v2/admin/customers/" + c.CustomerId + "/idp"
+	return GetPaged(c, 500, path, []IDP{})
+}
+
+//GetSCIMAttributes gets a list of the scim attributes for a given idp
+func (c *Client) GetSCIMAttributes(idpID string) ([]SCIMAttr, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/idp/" + idpID + "/scimattribute"
+	return GetPaged(c, 500, path, []SCIMAttr{})
+}
+
+//GetSCIMAttrValues gets a list of the scim attributes values for a given attribute
+func (c *Client) GetSCIMAttrValues(idpID string, attributeID string) ([]string, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/idp/" + idpID + "/attributeID/" + attributeID
+	return GetPaged(c, 500, path, []string{})
+}
+
+//GetSCIMGroups gets a list of the scim attributes values for a given attribute
+func (c *Client) GetSCIMGroups(idpID string) ([]SCIMGroup, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/scimgroup/idp/" + idpID
+	return GetPaged(c, 500, path, []SCIMGroup{})
+}
+
+//GetSCIMGroups gets a list of the scim attributes values for a given attribute
+func (c *Client) GetPostureProfiles() ([]PostureProfile, error) {
+	path := "/mgmtconfig/v2/admin/customers/" + c.CustomerId + "/posture"
+	return GetPaged(c, 500, path, []PostureProfile{})
+}
+
 //AddPolicy adds a policy to the specified policy set
 //Accepted policy type options are "access", "reauth", "siem", "bypass"
 //Function NewClient() returns a client with the policyIDs, if you're not using this function make sure the client has those variables.
@@ -885,6 +1071,10 @@ func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error)
 		err = json.Unmarshal(body, &res)
 		if err != nil {
 			return obj, err
+		}
+		//Return if pages == 0, meaning there are no objects return empty list and no erro
+		if res.Pages == "0" {
+			return obj, nil
 		}
 		//Unmarshall List into object
 		err = json.Unmarshal(res.List, &tmp)
