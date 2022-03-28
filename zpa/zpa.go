@@ -121,35 +121,35 @@ type CommonAppsDto struct {
 
 //AppSegment holds the app segment
 type AppSegment struct {
-	SegmentGroupID       string           `json:"segmentGroupId"`
-	SegmentGroupName     string           `json:"segmentGroupName"`
+	SegmentGroupID       string           `json:"segmentGroupId,omitempty"`
+	SegmentGroupName     string           `json:"segmentGroupName,omitempty"`
 	BypassType           string           `json:"bypassType"`
 	ClientlessApps       []ClientLessApps `json:"clientlessApps,omitempty"`
 	CommonAppsDto        []CommonAppsDto  `json:"commonAppsDto,omitempty"`
-	ConfigSpace          string           `json:"configSpace"`
-	CreationTime         string           `json:"creationTime"`
-	DefaultIdleTimeout   string           `json:"defaultIdleTimeout"`
-	DefaultMaxAge        string           `json:"defaultMaxAge"`
+	ConfigSpace          string           `json:"configSpace,omitempty"`
+	CreationTime         string           `json:"creationTime,omitempty"`
+	DefaultIdleTimeout   string           `json:"defaultIdleTimeout,omitempty"`
+	DefaultMaxAge        string           `json:"defaultMaxAge,omitempty"`
 	Description          string           `json:"description"`
-	DomainNames          []string         `json:"domainNames"`
+	DomainNames          []string         `json:"domainNames,omitempty"`
 	DoubleEncrypt        bool             `json:"doubleEncrypt"`
 	Enabled              bool             `json:"enabled"`
-	HealthCheckType      string           `json:"healthCheckType"`
-	HealthReporting      string           `json:"healthReporting"`
-	IcmpAccessType       string           `json:"icmpAccessType"`
-	ID                   string           `json:"id"`
+	HealthCheckType      string           `json:"healthCheckType,omitempty"`
+	HealthReporting      string           `json:"healthReporting,omitempty"`
+	IcmpAccessType       string           `json:"icmpAccessType,omitempty"`
+	ID                   string           `json:"id,omitempty"`
 	InspectionApps       []InspectionApps `json:"inspectionApps,omitempty"`
 	IPAnchored           bool             `json:"ipAnchored"`
 	IsCnameEnabled       bool             `json:"isCnameEnabled"`
-	ModifiedBy           string           `json:"modifiedBy"`
-	ModifiedTime         string           `json:"modifiedTime"`
-	Name                 string           `json:"name"`
-	PassiveHealthEnabled bool             `json:"passiveHealthEnabled"`
-	ServerGroups         []ServerGroup    `json:"serverGroups"`
-	TCPPortRange         []TCPPortRange   `json:"tcpPortRange"`
-	TCPPortRanges        []string         `json:"tcpPortRanges"`
-	UDPPortRange         []UDPPortRange   `json:"udpPortRange"`
-	UDPPortRanges        []string         `json:"udpPortRanges"`
+	ModifiedBy           string           `json:"modifiedBy,omitempty"`
+	ModifiedTime         string           `json:"modifiedTime,omitempty"`
+	Name                 string           `json:"name,omitempty"`
+	PassiveHealthEnabled bool             `json:"passiveHealthEnabled,omitempty"`
+	ServerGroups         []ServerGroup    `json:"serverGroups,omitempty"`
+	TCPPortRange         []TCPPortRange   `json:"tcpPortRange,omitempty"`
+	TCPPortRanges        []string         `json:"tcpPortRanges,omitempty"`
+	UDPPortRange         []UDPPortRange   `json:"udpPortRange,omitempty"`
+	UDPPortRanges        []string         `json:"udpPortRanges,omitempty"`
 }
 
 //GetID returns: name , objectID
