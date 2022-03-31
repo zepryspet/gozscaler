@@ -42,14 +42,8 @@ type myToken struct {
 //API structs////
 /////////////////
 
-//TCPPortRange helps build app segment
-type TCPPortRange struct {
-	From string `json:"from"`
-	To   string `json:"to"`
-}
-
-//UDPPortRange helps build app segment
-type UDPPortRange struct {
+//PortRange helps build port ranges on an app segment
+type PortRange struct {
 	From string `json:"from"`
 	To   string `json:"to"`
 }
@@ -146,9 +140,9 @@ type AppSegment struct {
 	Name                 string           `json:"name,omitempty"`
 	PassiveHealthEnabled bool             `json:"passiveHealthEnabled,omitempty"`
 	ServerGroups         []ServerGroup    `json:"serverGroups,omitempty"`
-	TCPPortRange         []TCPPortRange   `json:"tcpPortRange,omitempty"`
+	TCPPortRange         []PortRange      `json:"tcpPortRange,omitempty"`
 	TCPPortRanges        []string         `json:"tcpPortRanges,omitempty"`
-	UDPPortRange         []UDPPortRange   `json:"udpPortRange,omitempty"`
+	UDPPortRange         []PortRange      `json:"udpPortRange,omitempty"`
 	UDPPortRanges        []string         `json:"udpPortRanges,omitempty"`
 }
 
