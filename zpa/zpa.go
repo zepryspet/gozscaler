@@ -115,21 +115,22 @@ type CommonAppsDto struct {
 
 //AppSegment holds the app segment
 type AppSegment struct {
-	SegmentGroupID       string           `json:"segmentGroupId,omitempty"`
-	SegmentGroupName     string           `json:"segmentGroupName,omitempty"`
-	BypassType           string           `json:"bypassType"`
-	ClientlessApps       []ClientLessApps `json:"clientlessApps,omitempty"`
-	CommonAppsDto        []CommonAppsDto  `json:"commonAppsDto,omitempty"`
-	ConfigSpace          string           `json:"configSpace,omitempty"`
-	CreationTime         string           `json:"creationTime,omitempty"`
-	DefaultIdleTimeout   string           `json:"defaultIdleTimeout,omitempty"`
-	DefaultMaxAge        string           `json:"defaultMaxAge,omitempty"`
-	Description          string           `json:"description"`
-	DomainNames          []string         `json:"domainNames,omitempty"`
-	DoubleEncrypt        bool             `json:"doubleEncrypt"`
-	Enabled              bool             `json:"enabled"`
-	HealthCheckType      string           `json:"healthCheckType,omitempty"`
-	HealthReporting      string           `json:"healthReporting,omitempty"`
+	SegmentGroupID     string           `json:"segmentGroupId,omitempty"`
+	SegmentGroupName   string           `json:"segmentGroupName,omitempty"`
+	BypassType         string           `json:"bypassType"`
+	ClientlessApps     []ClientLessApps `json:"clientlessApps,omitempty"`
+	CommonAppsDto      []CommonAppsDto  `json:"commonAppsDto,omitempty"`
+	ConfigSpace        string           `json:"configSpace,omitempty"`
+	CreationTime       string           `json:"creationTime,omitempty"`
+	DefaultIdleTimeout string           `json:"defaultIdleTimeout,omitempty"`
+	DefaultMaxAge      string           `json:"defaultMaxAge,omitempty"`
+	Description        string           `json:"description"`
+	DomainNames        []string         `json:"domainNames,omitempty"`
+	DoubleEncrypt      bool             `json:"doubleEncrypt"`
+	Enabled            bool             `json:"enabled"`
+	HealthCheckType    string           `json:"healthCheckType,omitempty"`
+	HealthReporting    string           `json:"healthReporting,omitempty"`
+	//Values are "PING" or "NONE"
 	IcmpAccessType       string           `json:"icmpAccessType,omitempty"`
 	ID                   string           `json:"id,omitempty"`
 	InspectionApps       []InspectionApps `json:"inspectionApps,omitempty"`
@@ -200,17 +201,17 @@ func (obj *AppSegment) ResetID(m map[string]string) bool {
 
 //SegmentGroup parses segment groups
 type SegmentGroup struct {
-	Applications        []AppSegment `json:"applications"`
-	ConfigSpace         string       `json:"configSpace"`
-	CreationTime        string       `json:"creationTime"`
-	Description         string       `json:"description"`
-	Enabled             bool         `json:"enabled"`
-	ID                  string       `json:"id"`
-	ModifiedBy          string       `json:"modifiedBy"`
-	ModifiedTime        string       `json:"modifiedTime"`
-	Name                string       `json:"name"`
-	PolicyMigrated      bool         `json:"policyMigrated"`
-	TCPKeepAliveEnabled string       `json:"tcpKeepAliveEnabled"`
+	Applications        []AppSegment `json:"applications,omitempty"`
+	ConfigSpace         string       `json:"configSpace,omitempty"`
+	CreationTime        string       `json:"creationTime,omitempty"`
+	Description         string       `json:"description,omitempty"`
+	Enabled             bool         `json:"enabled,omitempty"`
+	ID                  string       `json:"id,omitempty"`
+	ModifiedBy          string       `json:"modifiedBy,omitempty"`
+	ModifiedTime        string       `json:"modifiedTime,omitempty"`
+	Name                string       `json:"name,omitempty"`
+	PolicyMigrated      bool         `json:"policyMigrated,omitempty"`
+	TCPKeepAliveEnabled string       `json:"tcpKeepAliveEnabled,omitempty"`
 }
 
 //GetID return the object name, ID
@@ -294,16 +295,16 @@ func (obj *Server) ResetID(m map[string]string) bool {
 type ServerGroup struct {
 	Applications       []NameID            `json:"applications,omitempty"`
 	AppConnectorGroups []AppConnectorGroup `json:"appConnectorGroups,omitempty"`
-	ConfigSpace        string              `json:"configSpace"`
-	CreationTime       string              `json:"creationTime"`
-	Description        string              `json:"description"`
-	Enabled            bool                `json:"enabled"`
-	ID                 string              `json:"id,omitempty"`
-	IPAnchored         bool                `json:"ipAnchored"`
-	DynamicDiscovery   bool                `json:"dynamicDiscovery"`
-	ModifiedBy         string              `json:"modifiedBy"`
-	ModifiedTime       string              `json:"modifiedTime"`
-	Name               string              `json:"name"`
+	ConfigSpace        string              `json:"configSpace,omitempty"`
+	CreationTime       string              `json:"creationTime,omitempty"`
+	Description        string              `json:"description,omitempty"`
+	Enabled            bool                `json:"enabled,omitempty"`
+	ID                 string              `json:"id,omitempty,omitempty"`
+	IPAnchored         bool                `json:"ipAnchored,omitempty"`
+	DynamicDiscovery   bool                `json:"dynamicDiscovery,omitempty"`
+	ModifiedBy         string              `json:"modifiedBy,omitempty"`
+	ModifiedTime       string              `json:"modifiedTime,omitempty"`
+	Name               string              `json:"name,omitempty"`
 	Servers            []Server            `json:"servers,omitempty"`
 }
 
