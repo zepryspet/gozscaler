@@ -1032,8 +1032,8 @@ func (c *Client) EditPolicy(obj Policy, policySetID string) error {
 
 //DeletePolicy edits the policy to the specified policy set and the ID on the passed Policy object.
 //you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
-func (c *Client) DeletePolicy(obj Policy, policySetID string) error {
-	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + policySetID + "/rule/" + obj.ID
+func (c *Client) DeletePolicy(obj Policy) error {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + obj.PolicySetID + "/rule/" + obj.ID
 	return c.deleteRequest(path)
 }
 
