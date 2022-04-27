@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -19,12 +20,6 @@ type auth struct {
 type myToken struct {
 	Token string `json:"jwtToken"`
 }
-type Client struct {
-	BaseURL    string
-	HTTPClient *http.Client
-	RetryMax   int
-	Token      string
-}
 
 type Devices struct {
 	udid string `json:"udid"`
@@ -38,6 +33,8 @@ func authenticate(base_url string, client_id string, secret_key string) (string,
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println(json_data)
+	fmt.Println(url)
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -63,6 +60,13 @@ func authenticate(base_url string, client_id string, secret_key string) (string,
 	return token.Token, nil
 }
 
+type Client struct {
+	BaseURL    string
+	HTTPClient *http.Client
+	RetryMax   int
+	Token      string
+}
+
 func NewClient(BaseURL string, client_id string, client_secret string) (*Client, error) {
 	//Validating URL
 	_, err := url.Parse(BaseURL)
@@ -85,3 +89,30 @@ func NewClient(BaseURL string, client_id string, client_secret string) (*Client,
 
 }
 
+func (c *Client) FetchDevices(orgId int) ([]Devices, error) {
+	url := c.BaseURL + "/public/v1/getDevices"
+	client := http.Client{}
+	req , err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal("Error getting response. ", err)
+	}
+    req.Header.Set("auth-token", c.Token)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal("Error reading response. ", err)
+	}
+	defer resp.Body.Close()
+    body, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		panic(err.Error())
+	}
+	res := []Devices{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+
+
+}
