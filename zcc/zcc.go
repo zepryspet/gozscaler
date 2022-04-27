@@ -12,21 +12,34 @@ import (
 	"time"
 )
 
+//myToken parses the authentication request
 type auth struct {
 	ApiKey    string `json:"apiKey"`    //client id obtainted from the mobile portal
 	SecretKey string `json:"secretKey"` // client secret obtainted from the mobile  portal
 }
 
+//myToken parses the authentication response
 type myToken struct {
 	Token string `json:"jwtToken"`
 }
 
+//Devices holds de device information
 type Devices struct {
-	udid string `json:"udid"`
-	user string `json:"user"`
+	Udid string `json:"udid"`
+	User string `json:"user"`
 }
 
-func authenticate(base_url string, client_id string, secret_key string) (string, error) {
+//Client is the struct holding the client parameters for http calls
+type Client struct {
+	BaseURL    string
+	HTTPClient *http.Client
+	RetryMax   int
+	Token      string
+	CustomerID string
+}
+
+//Authenticate receives autentication information and returns the authentication token and error if exist
+func Authenticate(base_url string, client_id string, secret_key string) (string, error) {
 	url := base_url + "/auth/v1/login"
 	payload := auth{ApiKey: client_id, SecretKey: secret_key}
 	json_data, err := json.Marshal(payload)
@@ -60,21 +73,18 @@ func authenticate(base_url string, client_id string, secret_key string) (string,
 	return token.Token, nil
 }
 
-type Client struct {
-	BaseURL    string
-	HTTPClient *http.Client
-	RetryMax   int
-	Token      string
-}
-
-func NewClient(BaseURL string, client_id string, client_secret string) (*Client, error) {
+//Newclient wraps the authenticate function and return a client that will have all the http calls.
+//Base URL changes based on cloud name.
+//i.e https://api-mobile.zscalerbeta.net/papi for beta cliud
+// or https://api-mobile.zscalertwo.net/papi for cloud two
+func NewClient(BaseURL string, customerID string, clientID string, clientSecret string) (*Client, error) {
 	//Validating URL
 	_, err := url.Parse(BaseURL)
 	if err != nil {
 		return &Client{}, errors.New("failed to parse API URL")
 	}
 	//Getting access token
-	access_token, err := authenticate(BaseURL, client_id, client_secret)
+	access_token, err := Authenticate(BaseURL, clientID, clientSecret)
 	if err != nil {
 		return &Client{}, err
 	}
@@ -83,36 +93,35 @@ func NewClient(BaseURL string, client_id string, client_secret string) (*Client,
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 10,
 		},
-		RetryMax: 10,
-		Token:    access_token,
+		RetryMax:   10,
+		Token:      access_token,
+		CustomerID: customerID,
 	}, nil
 
 }
 
+//FetchDevices get all the devices enrolled in ZCC mobile portal
 func (c *Client) FetchDevices(orgId int) ([]Devices, error) {
+	res := []Devices{}
 	url := c.BaseURL + "/public/v1/getDevices"
 	client := http.Client{}
-	req , err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal("Error getting response. ", err)
+		return res, err
 	}
-    req.Header.Set("auth-token", c.Token)
+	req.Header.Set("auth-token", c.Token)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal("Error reading response. ", err)
+		return res, err
 	}
 	defer resp.Body.Close()
-    body, err := io.ReadAll(resp.Body)
-
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err.Error())
+		return res, err
 	}
-	res := []Devices{}
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 	return res, nil
-
-
 }
