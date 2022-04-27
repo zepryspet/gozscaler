@@ -103,7 +103,6 @@ func NewClient(BaseURL string, clientID string, clientSecret string) (*Client, e
 
 //FetchDevices get all the devices enrolled in ZCC mobile portal
 func (c *Client) GetDevices() ([]Devices, error) {
-	res := []Devices{}
 	res, err := GetPaged[Devices](c, 50, "/public/v1/getDevices")
 	if err != nil {
 		return res, err
