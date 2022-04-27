@@ -1031,9 +1031,19 @@ func (c *Client) EditPolicy(obj Policy, policySetID string) error {
 }
 
 //DeletePolicy edits the policy to the specified policy set and the ID on the passed Policy object.
+//Accepted c policy type options are "access", "reauth", "siem", "bypass", default is access policy
 //you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
-func (c *Client) DeletePolicy(obj Policy) error {
-	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + obj.PolicySetID + "/rule/" + obj.ID
+func (c *Client) DeletePolicy(policyID string) error {
+	path := ""
+	if c.Policy == "reauth" {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.ReauthID + "/rule/" + policyID
+	} else if c.Policy == "siem" {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.SiemID + "/rule/" + policyID
+	} else if c.Policy == "bypass" {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.BypassID + "/rule/" + policyID
+	} else {
+		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.AccessID + "/rule/" + policyID
+	}
 	return c.deleteRequest(path)
 }
 
@@ -1331,7 +1341,7 @@ func (c *Client) putRequest(path string, payload []byte) error {
 	return err
 }
 
-//Process and sends HTTP PUT requests
+//Process and sends HTTP Delete requests
 func (c *Client) deleteRequest(path string) error {
 	req, err := http.NewRequest(http.MethodDelete, c.BaseURL+path, nil)
 	if err != nil {
