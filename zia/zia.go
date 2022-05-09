@@ -70,6 +70,11 @@ type AppGroup struct {
 	Description         string   `json:"description,omitempty"`
 }
 
+//GetID returns name, id
+func (u AppGroup) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
 //UrlCat parses responses for urls categories
 type UrlCat struct {
 	ID                              string   `json:"id"`
@@ -222,6 +227,11 @@ type Location struct {
 	Description                         string        `json:"description,omitempty"`
 }
 
+//GetID return the name a string and the ID as int
+func (u Location) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
 //LocationGroup parses location groups
 type LocationGroup struct {
 	ID                           int    `json:"id"`
@@ -254,6 +264,11 @@ type LocationGroup struct {
 	Predefined  bool     `json:"predefined"`
 }
 
+//GetID return the name a string and the ID as int
+func (u LocationGroup) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
 //Department parses user departments
 type Department struct {
 	ID       int    `json:"id,omitempty"`
@@ -263,12 +278,22 @@ type Department struct {
 	Deleted  bool   `json:"deleted,omitempty"`
 }
 
+//GetID return the name a string and the ID as int
+func (u Department) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
 //UserGroup parses UserGroup
 type UserGroup struct {
 	ID       int    `json:"id"`
 	Name     string `json:"name"`
 	IdpID    int    `json:"idpId"`
 	Comments string `json:"comments"`
+}
+
+//GetID return the name a string and the ID as int
+func (u UserGroup) GetID() (string, int) {
+	return u.Name, u.ID
 }
 
 //Users parses Users
@@ -283,6 +308,11 @@ type User struct {
 	Password      string      `json:"password,omitempty"`
 	AdminUser     bool        `json:"adminUser,omitempty"`
 	Type          string      `json:"type,omitempty"`
+}
+
+//GetID return the name a string and the ID as int
+func (u User) GetID() (string, int) {
+	return u.Name, u.ID
 }
 
 //BlockedUrls parses responses for blocked urls
@@ -315,6 +345,8 @@ type DLPDictionary struct {
 	ExactDataMatchDetails   []EDMDetails `json:"exactDataMatchDetails,omitempty"`
 	IdmProfileMatchAccuracy []IDMProfile `json:"idmProfileMatchAccuracy,omitempty"`
 	Proximity               int          `json:"proximity,omitempty"`
+	Custom                  bool         `json:"custom,omitempty"`
+	ProximityLengthEnabled  bool         `json:"proximityLengthEnabled,omitempty"`
 }
 
 //Phrases holds DLP dictionary phrases
@@ -357,6 +389,11 @@ type Zurl interface {
 	SetUrls(string, []string)
 	PushItems(client *Client) error
 	GetName() string
+}
+
+//Zid is the interface for tyopes that can return ID, so most of them
+type Zid interface {
+	GetID() (string, int)
 }
 
 //func (c BlockedUrls)  returns all the urls in a blocklist
@@ -666,9 +703,9 @@ func (c *Client) AddService(obj Service) (int, error) {
 	return res.ID, err
 }
 
-//GetLocations gets a list of locations up to 1000, if more than that use GetLocationsPaged
+//GetLocations gets all locations
 func (c *Client) GetLocations() ([]Location, error) {
-	return c.GetLocationsPaged(1, 1000)
+	return getPaged[Location](c, 1000, "/locations")
 }
 
 //GetLocationsPaged allows you to request between 100 and 1000 items
@@ -690,6 +727,11 @@ func (c *Client) GetLocationsPaged(page int, pageSize int) ([]Location, error) {
 	return res, nil
 }
 
+//GetLocationGroups gets all location groups
+func (c *Client) GetLocationGroups() ([]LocationGroup, error) {
+	return getPaged[LocationGroup](c, 1000, "/locations/groups")
+}
+
 //GetLocationsPaged allows you to request between 100 and 1000 items
 func (c *Client) GetLocationGroupsPaged(page int, pageSize int) ([]LocationGroup, error) {
 	//Validating pagezise
@@ -707,6 +749,11 @@ func (c *Client) GetLocationGroupsPaged(page int, pageSize int) ([]LocationGroup
 		return nil, err
 	}
 	return res, nil
+}
+
+//GetLocationGroups gets all departments
+func (c *Client) GetDeparments() ([]Department, error) {
+	return getPaged[Department](c, 1000, "/departments")
 }
 
 //GetDepartmentsPaged allows you to request between 100 and 1000 items
@@ -728,6 +775,11 @@ func (c *Client) GetDepartmentsPaged(page int, pageSize int) ([]Department, erro
 	return res, nil
 }
 
+//GetGroups gets all user groups
+func (c *Client) GetGroups() ([]UserGroup, error) {
+	return getPaged[UserGroup](c, 1000, "/groups")
+}
+
 //GetGroupsPaged allows you to request between 100 and 1000 items
 func (c *Client) GetGroupsPaged(page int, pageSize int) ([]UserGroup, error) {
 	//Validating pagezise
@@ -745,6 +797,11 @@ func (c *Client) GetGroupsPaged(page int, pageSize int) ([]UserGroup, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+//GetUsers return all the ZIA users
+func (c *Client) GetUsers() ([]User, error) {
+	return getPaged[User](c, 1000, "/users")
 }
 
 //GetUsersPaged allows you to request between 100 and 1000 items
@@ -935,6 +992,49 @@ func (c *Client) RepAllowedUrls(urls AllowedUrls) error {
 		return err
 	}
 	return c.putRequest("/security", postBody)
+}
+
+//GetPaged is a generic function that iterates through multiple pageds and returns the joined parsed object
+func getPaged[K any](c *Client, pageSize int, path string) ([]K, error) {
+	var ret []K
+	//Creating tmp struct to unmarshal to.
+	var tmp []K
+	//Setting the 1st page number
+	page := 1
+	//iterating over all pages to get all
+	for {
+		npath := path + "?page=" + strconv.Itoa(page) + "&pagesize=" + strconv.Itoa(pageSize)
+		body, err := c.getRequest(npath)
+		if err != nil {
+			//not sure about this
+			return ret, nil
+		}
+		// Unmarshal response
+		err = json.Unmarshal(body, &tmp)
+		if err != nil {
+			return ret, err
+		}
+		//Apending to response
+		ret = append(ret, tmp...)
+		//If less than pagesize exit
+		if len(tmp) < pageSize {
+			break
+		}
+		page += 1
+	}
+	return ret, nil
+}
+
+//GetIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
+func GetIDs[K Zid](obj []K) map[string]int {
+	//Creating map
+	m := make(map[string]int)
+	//Iterating
+	for _, v := range obj {
+		name, id := v.GetID()
+		m[name] = id
+	}
+	return m
 }
 
 //postRequest Process and sends HTTP POST requests
