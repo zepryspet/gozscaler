@@ -1033,9 +1033,15 @@ func (c *Client) UpdateLocation(obj Location) error {
 }
 
 //GetUrlCats gets a list of all URL filtering category
-func (c *Client) GetUrlCats() ([]UrlCat, error) {
+func (c *Client) GetUrlCats(custom bool) ([]UrlCat, error) {
 	res := []UrlCat{}
-	body, err := c.getRequest("/urlCategories")
+	var path string
+	if custom {
+		path="/urlCategories?customOnly=true"
+	} else {
+        path="/urlCategories"
+	}
+	body, err := c.getRequest(path)
 	if err != nil {
 		return res, err
 	}
