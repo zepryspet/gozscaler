@@ -50,7 +50,7 @@ type UrlRule struct {
 	ValidityEndTime        int      `json:"validityEndTime"`
 	ValidityTimeZoneID     string   `json:"validityTimeZoneId"`
 	LastModifiedTime       int      `json:"lastModifiedTime"`
-	LastModifiedBy         NameID   `json:"lastModifiedBy,omitempty"`
+	LastModifiedBy         *NameID  `json:"lastModifiedBy,omitempty"`
 	EnforceTimeValidity    bool     `json:"enforceTimeValidity,omitempty"`
 	Action                 string   `json:"action,omitempty"`
 	Ciparule               bool     `json:"ciparule,omitempty"`
@@ -58,8 +58,8 @@ type UrlRule struct {
 
 //NameID is a helper for json entries with name and ID
 type NameID struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID   int    `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 //AppGroup parses network application groups
@@ -421,7 +421,11 @@ type DLPEngine struct {
 
 //GetID return the name a string and the ID as int
 func (u DLPEngine) GetID() (string, int) {
-	return u.Name, u.ID
+	if u.CustomDlpEngine == false {
+		return u.PredefinedEngineName, u.ID
+	} else {
+		return u.Name, u.ID
+	}
 }
 
 //DLPEngine hols dlp notification template details
@@ -459,34 +463,44 @@ type DLPRule struct {
 	Protocols                []string `json:"protocols,omitempty"`
 	Rank                     int      `json:"rank,omitempty"`
 	Description              string   `json:"description,omitempty"`
-	Locations                []NameID `json:"locations"`
-	LocationGroups           []NameID `json:"locationGroups"`
-	Groups                   []NameID `json:"groups"`
-	Departments              []NameID `json:"departments"`
-	Users                    []NameID `json:"users"`
-	URLCategories            []NameID `json:"urlCategories"`
-	DlpEngines               []NameID `json:"dlpEngines"`
+	Locations                []NameID `json:"locations,omitempty"`
+	LocationGroups           []NameID `json:"locationGroups,omitempty"`
+	Groups                   []NameID `json:"groups,omitempty"`
+	Departments              []NameID `json:"departments,omitempty"`
+	Users                    []NameID `json:"users,omitempty"`
+	URLCategories            []NameID `json:"urlCategories,omitempty"`
+	DlpEngines               []NameID `json:"dlpEngines,omitempty"`
 	FileTypes                []string `json:"fileTypes,omitempty"`
 	CloudApplications        []string `json:"cloudApplications,omitempty"`
 	MinSize                  int      `json:"minSize,omitempty"`
 	Action                   string   `json:"action,omitempty"`
 	State                    string   `json:"state,omitempty"`
-	TimeWindows              []NameID `json:"timeWindows"`
-	Auditor                  NameID   `json:"auditor"`
+	TimeWindows              []NameID `json:"timeWindows,omitempty"`
+	Auditor                  *NameID  `json:"auditor,omitempty"`
 	ExternalAuditorEmail     string   `json:"externalAuditorEmail,omitempty"`
-	NotificationTemplate     NameID   `json:"notificationTemplate"`
-	MatchOnly                bool     `json:"matchOnly"`
+	NotificationTemplate     *NameID  `json:"notificationTemplate,omitempty"`
+	MatchOnly                bool     `json:"matchOnly,omitempty"`
 	LastModifiedTime         int      `json:"lastModifiedTime,omitempty"`
-	LastModifiedBy           NameID   `json:"lastModifiedBy,omitempty"`
-	IcapServer               NameID   `json:"icapServer"`
+	LastModifiedBy           *NameID  `json:"lastModifiedBy,omitempty"`
+	IcapServer               *NameID  `json:"icapServer,omitempty"`
 	WithoutContentInspection bool     `json:"withoutContentInspection"`
 	Name                     string   `json:"name,omitempty"`
 	Labels                   []NameID `json:"labels,omitempty"`
-	OcrEnabled               bool     `json:"ocrEnabled"`
-	ExcludedGroups           []NameID `json:"excludedGroups"`
-	ExcludedDepartments      []NameID `json:"excludedDepartments"`
-	ExcludedUsers            []NameID `json:"excludedUsers"`
-	ZscalerIncidentReciever  bool     `json:"zscalerIncidentReciever"`
+	OcrEnabled               bool     `json:"ocrEnabled,omitempty"`
+	ExcludedGroups           []NameID `json:"excludedGroups,omitempty"`
+	ExcludedDepartments      []NameID `json:"excludedDepartments,omitempty"`
+	ExcludedUsers            []NameID `json:"excludedUsers,omitempty"`
+	ZscalerIncidentReciever  bool     `json:"zscalerIncidentReciever,omitempty"`
+}
+
+type Label struct {
+	ID                  int     `json:"id,omitempty"`
+	Name                string  `json:"name,omitempty"`
+	Description         string  `json:"description,omitempty"`
+	LastModifiedTime    int     `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy      *NameID `json:"lastModifiedBy,omitempty"`
+	CreatedBy           *NameID `json:"createdBy,omitempty"`
+	ReferencedRuleCount int     `json:"referencedRuleCount,omitempty"`
 }
 
 //Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
@@ -828,6 +842,26 @@ func (c *Client) GetLocations() ([]Location, error) {
 	return getPaged[Location](c, 1000, "/locations")
 }
 
+//GetLabels gets all labels
+func (c *Client) GetLabels() ([]Label, error) {
+	return getPaged[Label](c, 1000, "/ruleLabels")
+}
+
+//AddLabel adds a  network service and returns the new service ID
+func (c *Client) AddLabel(obj Label) (int, error) {
+	res := Label{}
+	postBody, _ := json.Marshal(obj)
+	body, err := c.postRequest("/ruleLabels", postBody)
+	if err != nil {
+		return 0, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, err
+}
+
 //GetLocationsPaged allows you to request between 100 and 1000 items
 func (c *Client) GetLocationsPaged(page int, pageSize int) ([]Location, error) {
 	//Validating pagezise
@@ -1030,7 +1064,6 @@ func (c *Client) GetDLPDictionaries() ([]DLPDictionary, error) {
 func (c *Client) AddDLPDictionary(obj DLPDictionary) (int, error) {
 	res := DLPDictionary{}
 	postBody, _ := json.Marshal(obj)
-	fmt.Println(postBody)
 	body, err := c.postRequest("/dlpDictionaries", postBody)
 	if err != nil {
 		return 0, err
