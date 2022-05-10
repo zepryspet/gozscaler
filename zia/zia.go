@@ -104,6 +104,17 @@ type UrlCat struct {
 	UrlsRetainingParentCategoryCount int `json:"urlsRetainingParentCategoryCount,omitempty"`
 }
 
+//GetID returns name, id
+func (u UrlCat) GetID() (string, int) {
+	//If this is a custom category the name is configured name.
+	//Predefined categories have the name on ID
+	if u.CustomCategory {
+		return u.ConfiguredName, u.Val
+	} else {
+		return u.ID, u.Val
+	}
+}
+
 //FwRule parses firewall rules
 type FwRule struct {
 	ID                  int      `json:"id"`
@@ -177,12 +188,22 @@ type Service struct {
 	IsNameL10NTag bool       `json:"isNameL10nTag,omitempty"`
 }
 
+//GetID return the name a string and the ID as int
+func (u Service) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
 //ServiceGroup parses responses for network servicesgroups
 type ServiceGroup struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Services    []Service `json:"services"`
 	Description string    `json:"description,omitempty"`
+}
+
+//GetID return the name a string and the ID as int
+func (u ServiceGroup) GetID() (string, int) {
+	return u.Name, u.ID
 }
 
 //VpnLocation helper to hold vpn credential on a location
@@ -349,6 +370,11 @@ type DLPDictionary struct {
 	ProximityLengthEnabled  bool         `json:"proximityLengthEnabled,omitempty"`
 }
 
+//GetID return the name a string and the ID as int
+func (u DLPDictionary) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
 //Phrases holds DLP dictionary phrases
 type Phrase struct {
 	Action string `json:"action,omitempty"`
@@ -381,6 +407,86 @@ type IDMProfile struct {
 		} `json:"extensions,omitempty"`
 	} `json:"adpIdmProfile,omitempty"`
 	MatchAccuracy string `json:"matchAccuracy,omitempty"`
+}
+
+//DLPEngine hols dlp engine details
+type DLPEngine struct {
+	ID                   int    `json:"id,omitempty"`
+	Name                 string `json:"name,omitempty"`
+	PredefinedEngineName string `json:"predefinedEngineName,omitempty"`
+	EngineExpression     string `json:"engineExpression,omitempty"`
+	CustomDlpEngine      bool   `json:"customDlpEngine,omitempty"`
+	Description          string `json:"description,omitempty"`
+}
+
+//GetID return the name a string and the ID as int
+func (u DLPEngine) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
+//DLPEngine hols dlp notification template details
+type DLPNotificationTemplate struct {
+	ID               int    `json:"id,omitempty"`
+	Name             string `json:"name,omitempty"`
+	Subject          string `json:"subject,omitempty"`
+	AttachContent    bool   `json:"attachContent,omitempty"`
+	PlainTextMessage string `json:"plainTextMessage,omitempty"`
+	HTMLMessage      string `json:"htmlMessage,omitempty"`
+}
+
+//GetID return the name a string and the ID as int
+func (u DLPNotificationTemplate) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
+//ICAPServer holds an icap server detail
+type ICAPServer struct {
+	ID     int    `json:"id,omitempty"`
+	Name   string `json:"name,omitempty"`
+	URL    string `json:"url,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+//GetID return the name a string and the ID as int
+func (u ICAPServer) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
+//DLPRule holds a DLP rule information
+type DLPRule struct {
+	ID                       int      `json:"id,omitempty"`
+	Order                    int      `json:"order,omitempty"`
+	Protocols                []string `json:"protocols,omitempty"`
+	Rank                     int      `json:"rank,omitempty"`
+	Description              string   `json:"description,omitempty"`
+	Locations                []NameID `json:"locations"`
+	LocationGroups           []NameID `json:"locationGroups"`
+	Groups                   []NameID `json:"groups"`
+	Departments              []NameID `json:"departments"`
+	Users                    []NameID `json:"users"`
+	URLCategories            []NameID `json:"urlCategories"`
+	DlpEngines               []NameID `json:"dlpEngines"`
+	FileTypes                []string `json:"fileTypes,omitempty"`
+	CloudApplications        []string `json:"cloudApplications,omitempty"`
+	MinSize                  int      `json:"minSize,omitempty"`
+	Action                   string   `json:"action,omitempty"`
+	State                    string   `json:"state,omitempty"`
+	TimeWindows              []NameID `json:"timeWindows"`
+	Auditor                  NameID   `json:"auditor"`
+	ExternalAuditorEmail     string   `json:"externalAuditorEmail,omitempty"`
+	NotificationTemplate     NameID   `json:"notificationTemplate"`
+	MatchOnly                bool     `json:"matchOnly"`
+	LastModifiedTime         int      `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy           NameID   `json:"lastModifiedBy,omitempty"`
+	IcapServer               NameID   `json:"icapServer"`
+	WithoutContentInspection bool     `json:"withoutContentInspection"`
+	Name                     string   `json:"name,omitempty"`
+	Labels                   []NameID `json:"labels,omitempty"`
+	OcrEnabled               bool     `json:"ocrEnabled"`
+	ExcludedGroups           []NameID `json:"excludedGroups"`
+	ExcludedDepartments      []NameID `json:"excludedDepartments"`
+	ExcludedUsers            []NameID `json:"excludedUsers"`
+	ZscalerIncidentReciever  bool     `json:"zscalerIncidentReciever"`
 }
 
 //Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
@@ -688,6 +794,20 @@ func (c *Client) GetServices() ([]Service, error) {
 	return res, nil
 }
 
+//GetService gets a list of network service groups
+func (c *Client) GetAuditors() ([]User, error) {
+	body, err := c.getRequest("/users/auditors")
+	if err != nil {
+		return nil, err
+	}
+	res := []User{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 //AddService adds a  network service and returns the new service ID
 func (c *Client) AddService(obj Service) (int, error) {
 	postBody, _ := json.Marshal(obj)
@@ -878,7 +998,7 @@ func (c *Client) UpdateLocation(obj Location) error {
 	return nil
 }
 
-//GetUrlCats gets a list of URL filtering category
+//GetUrlCats gets a list of all URL filtering category
 func (c *Client) GetUrlCats() ([]UrlCat, error) {
 	res := []UrlCat{}
 	body, err := c.getRequest("/urlCategories")
@@ -892,7 +1012,7 @@ func (c *Client) GetUrlCats() ([]UrlCat, error) {
 	return res, nil
 }
 
-//AddUrlRule adds a URL filtering category
+//GetDLPDictionaries get all the DLP dictionaries
 func (c *Client) GetDLPDictionaries() ([]DLPDictionary, error) {
 	res := []DLPDictionary{}
 	body, err := c.getRequest("/dlpDictionaries")
@@ -906,11 +1026,98 @@ func (c *Client) GetDLPDictionaries() ([]DLPDictionary, error) {
 	return res, nil
 }
 
-//AddUrlRule adds a URL filtering category
+//AddDLPDictionary adds a DLP dictionary and returns the id if created or error
 func (c *Client) AddDLPDictionary(obj DLPDictionary) (int, error) {
 	res := DLPDictionary{}
 	postBody, _ := json.Marshal(obj)
+	fmt.Println(postBody)
 	body, err := c.postRequest("/dlpDictionaries", postBody)
+	if err != nil {
+		return 0, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, nil
+}
+
+//GetDLPEngines get all the DLP engines
+func (c *Client) GetDLPEngines() ([]DLPEngine, error) {
+	res := []DLPEngine{}
+	body, err := c.getRequest("/dlpEngines")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+//GetDLPNotificationTemplates get all the DLP notification templates
+func (c *Client) GetDLPNotificationTemplates() ([]DLPNotificationTemplate, error) {
+	res := []DLPNotificationTemplate{}
+	body, err := c.getRequest("/dlpNotificationTemplates")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+//AddDLPNotificationTemplates add a DLP notification template
+func (c *Client) AddDLPNotificationTemplate(entry DLPNotificationTemplate) (int, error) {
+	res := DLPNotificationTemplate{}
+	postBody, _ := json.Marshal(entry)
+	body, err := c.postRequest("/dlpNotificationTemplates", postBody)
+	if err != nil {
+		return 0, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, nil
+}
+
+//GetDLPEngines get all the DLP engines
+func (c *Client) GetICAPServers() ([]ICAPServer, error) {
+	res := []ICAPServer{}
+	body, err := c.getRequest("/icapServers")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+//GetDLPEngines get all the DLP engines
+func (c *Client) GetDLPRules() ([]DLPRule, error) {
+	res := []DLPRule{}
+	body, err := c.getRequest("/webDlpRules")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+//AddUrlRule adds a URL filtering category
+func (c *Client) AddDLPRule(item DLPRule) (int, error) {
+	res := DLPRule{}
+	postBody, _ := json.Marshal(item)
+	body, err := c.postRequest("/webDlpRules", postBody)
 	if err != nil {
 		return 0, err
 	}
@@ -1191,6 +1398,11 @@ func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.C
 		Timeout: time.Second * 10,
 	}
 	resp, err := client.Post(BaseURL+"/authenticatedSession", "application/json", data)
+	if err != nil {
+		return nil, err
+	}
+	//Checking response
+	err = httpStatusCheck(resp)
 	if err != nil {
 		return nil, err
 	}
