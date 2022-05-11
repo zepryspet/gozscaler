@@ -503,6 +503,11 @@ type Label struct {
 	ReferencedRuleCount int     `json:"referencedRuleCount,omitempty"`
 }
 
+//GetID returns the name as string and the ID as int
+func (u Label) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
 //Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
 type Zurl interface {
 	GetUrls(string) []string
