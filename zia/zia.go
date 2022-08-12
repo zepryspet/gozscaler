@@ -3,7 +3,6 @@ package zia
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,6 +13,21 @@ import (
 	"strings"
 	"time"
 )
+
+//ZIAError is the error
+type ZIAError struct {
+	//this is the Error
+	Err string
+	//Code this is the http status code
+	Code int
+}
+
+func (e *ZIAError) Error() string {
+	if e.Code != 0 {
+		return e.Err + ", HTTP status code: " + strconv.Itoa(e.Code)
+	}
+	return e.Err
+}
 
 //Client contains the base url, http client and max number of retries per requests
 type Client struct {
@@ -603,11 +617,11 @@ func NewClient(BaseURL string, admin string, pass string, apiKey string) (*Clien
 	}
 	CookieJar, err := cookiejar.New(nil)
 	if err != nil {
-		return &Client{}, errors.New("failed to set authentication cookie")
+		return &Client{}, &ZIAError{Err: "failed to set authentication cookie"}
 	}
 	u, err := url.Parse(BaseURL)
 	if err != nil {
-		return &Client{}, errors.New("failed to parse API URL")
+		return &Client{}, &ZIAError{Err: "failed to parse API URL"}
 	}
 	CookieJar.SetCookies(u, cookie)
 	return &Client{
@@ -867,47 +881,9 @@ func (c *Client) AddLabel(obj Label) (int, error) {
 	return res.ID, err
 }
 
-//GetLocationsPaged allows you to request between 100 and 1000 items
-func (c *Client) GetLocationsPaged(page int, pageSize int) ([]Location, error) {
-	//Validating pagezise
-	if pageSize < 100 || pageSize > 1000 {
-		return nil, errors.New("Page size must be a number between 100 or 1000")
-	}
-	path := "/locations" + "?page=" + strconv.Itoa(page) + "&pageSize=" + strconv.Itoa(pageSize)
-	body, err := c.getRequest(path)
-	if err != nil {
-		return nil, err
-	}
-	res := []Location{}
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
-
 //GetLocationGroups gets all location groups
 func (c *Client) GetLocationGroups() ([]LocationGroup, error) {
 	return getPaged[LocationGroup](c, 1000, "/locations/groups")
-}
-
-//GetLocationsPaged allows you to request between 100 and 1000 items
-func (c *Client) GetLocationGroupsPaged(page int, pageSize int) ([]LocationGroup, error) {
-	//Validating pagezise
-	if pageSize < 100 || pageSize > 1000 {
-		return nil, errors.New("Page size must be a number between 100 or 1000")
-	}
-	path := "/locations/groups" + "?page=" + strconv.Itoa(page) + "&pageSize=" + strconv.Itoa(pageSize)
-	body, err := c.getRequest(path)
-	if err != nil {
-		return nil, err
-	}
-	res := []LocationGroup{}
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
 }
 
 //GetLocationGroups gets all departments
@@ -915,47 +891,9 @@ func (c *Client) GetDeparments() ([]Department, error) {
 	return getPaged[Department](c, 1000, "/departments")
 }
 
-//GetDepartmentsPaged allows you to request between 100 and 1000 items
-func (c *Client) GetDepartmentsPaged(page int, pageSize int) ([]Department, error) {
-	//Validating pagezise
-	if pageSize < 100 || pageSize > 1000 {
-		return nil, errors.New("Page size must be a number between 100 or 1000")
-	}
-	path := "/departments" + "?page=" + strconv.Itoa(page) + "&pageSize=" + strconv.Itoa(pageSize)
-	body, err := c.getRequest(path)
-	if err != nil {
-		return nil, err
-	}
-	res := []Department{}
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
-
 //GetGroups gets all user groups
 func (c *Client) GetGroups() ([]UserGroup, error) {
 	return getPaged[UserGroup](c, 1000, "/groups")
-}
-
-//GetGroupsPaged allows you to request between 100 and 1000 items
-func (c *Client) GetGroupsPaged(page int, pageSize int) ([]UserGroup, error) {
-	//Validating pagezise
-	if pageSize < 100 || pageSize > 1000 {
-		return nil, errors.New("Page size must be a number between 100 or 1000")
-	}
-	path := "/groups" + "?page=" + strconv.Itoa(page) + "&pageSize=" + strconv.Itoa(pageSize)
-	body, err := c.getRequest(path)
-	if err != nil {
-		return nil, err
-	}
-	res := []UserGroup{}
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
 }
 
 //GetUsers return all the ZIA users
@@ -967,7 +905,7 @@ func (c *Client) GetUsers() ([]User, error) {
 func (c *Client) GetUsersPaged(page int, pageSize int) ([]User, error) {
 	//Validating pagezise
 	if pageSize < 100 || pageSize > 1000 {
-		return nil, errors.New("Page size must be a number between 100 or 1000")
+		return nil, &ZIAError{Err: "Page size must be a number between 100 or 1000"}
 	}
 	path := "/users" + "?page=" + strconv.Itoa(page) + "&pageSize=" + strconv.Itoa(pageSize)
 	body, err := c.getRequest(path)
@@ -1080,6 +1018,20 @@ func (c *Client) AddDLPDictionary(obj DLPDictionary) (int, error) {
 	return res.ID, nil
 }
 
+//Edit adds a new location or sublocation and returns the new object ID
+func (c *Client) UpdateDLPDictionary(obj DLPDictionary) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/dlpDictionaries/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //GetDLPEngines get all the DLP engines
 func (c *Client) GetDLPEngines() ([]DLPEngine, error) {
 	res := []DLPEngine{}
@@ -1185,7 +1137,7 @@ func (c *Client) AddUrlCat(category UrlCat) (string, error) {
 func (c *Client) UpdateUrlCat(category UrlCat) error {
 	//Validating at least 1 urls is in the entries
 	if category.Urls == nil {
-		return errors.New("You can't delete all urls, at least 1 url should be sent on url category:" + category.ConfiguredName)
+		return &ZIAError{Err: "You can't delete all urls, at least 1 url should be sent on url category:" + category.ConfiguredName}
 	}
 	path := "/urlCategories/" + category.ID
 	postBody, _ := json.Marshal(category)
@@ -1248,11 +1200,21 @@ func getPaged[K any](c *Client, pageSize int, path string) ([]K, error) {
 	page := 1
 	//iterating over all pages to get all
 	for {
-		npath := path + "?page=" + strconv.Itoa(page) + "&pagesize=" + strconv.Itoa(pageSize)
+		npath := path + "?page=" + strconv.Itoa(page) + "&pageSize=" + strconv.Itoa(pageSize)
 		body, err := c.getRequest(npath)
 		if err != nil {
-			//not sure about this
-			return ret, nil
+			//check status code and return response if 400
+			re, ok := err.(*ZIAError)
+			if ok {
+				//only return no error when a 404 is received
+				if re.Code == 404 {
+					return ret, nil
+				} else {
+					return ret, err
+				}
+			} else { // hopefuly we won't hit this
+				return ret, err
+			}
 		}
 		// Unmarshal response
 		err = json.Unmarshal(body, &tmp)
@@ -1336,7 +1298,8 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 			if err != nil {
 				return nil, err
 			}
-			s := time.Duration(t) * time.Second
+			//Wait for x seconds minus TLs setup time -average 150ms-
+			s := (time.Duration(t) * time.Second) - (150 * time.Millisecond)
 			time.Sleep(s)
 			retryMax -= 1
 			// reset Request.Body
@@ -1395,23 +1358,23 @@ func httpStatusCheck(resp *http.Response) error {
 		return nil
 	} else if resp.StatusCode == 400 {
 		b, _ := io.ReadAll(resp.Body)
-		return errors.New("HTTP error: Invalid or bad request" + string(b))
+		return &ZIAError{Err: "HTTP error: Invalid or bad request" + string(b), Code: resp.StatusCode}
 	} else if resp.StatusCode == 401 {
-		return errors.New("HTTP error: Session is not authenticated or timed out")
+		return &ZIAError{Err: "HTTP error: Session is not authenticated or timed out", Code: resp.StatusCode}
 	} else if resp.StatusCode == 403 {
-		return errors.New("HTTP error: The API key was disabled by your service provider, User's role has no access permissions or functional scope or a required SKU subscription is missing")
+		return &ZIAError{Err: "HTTP error: The API key was disabled by your service provider, User's role has no access permissions or functional scope or a required SKU subscription is missing", Code: resp.StatusCode}
 	} else if resp.StatusCode == 409 {
-		return errors.New("HTTP error: Request could not be processed because of possible edit conflict occurred. Another admin might be saving a configuration change at the same time. In this scenario, the client is expected to retry after a short time period.")
+		return &ZIAError{Err: "HTTP error: Request could not be processed because of possible edit conflict occurred. Another admin might be saving a configuration change at the same time. In this scenario, the client is expected to retry after a short time period.", Code: resp.StatusCode}
 	} else if resp.StatusCode == 415 {
-		return errors.New("HTTP error: Unsupported media type. This error is returned if you don't include application/json as the Content-Type in the request header (for example, Content-Type: application/json).")
+		return &ZIAError{Err: "HTTP error: Unsupported media type. This error is returned if you don't include application/json as the Content-Type in the request header (for example, Content-Type: application/json).", Code: resp.StatusCode}
 	} else if resp.StatusCode == 429 {
-		return errors.New("HTTP error: Exceeded the rate limit or quota. The response includes a Retry-After value.")
+		return &ZIAError{Err: "HTTP error: Exceeded the rate limit or quota. The response includes a Retry-After value.", Code: resp.StatusCode}
 	} else if resp.StatusCode == 500 {
-		return errors.New("HTTP error: Unexpected error")
+		return &ZIAError{Err: "HTTP error: Unexpected error", Code: resp.StatusCode}
 	} else if resp.StatusCode == 503 {
-		return errors.New("HTTP error: Service is temporarily unavailable")
+		return &ZIAError{Err: "HTTP error: Service is temporarily unavailable", Code: resp.StatusCode}
 	} else {
-		return errors.New("Invalid HTTP response code")
+		return &ZIAError{Err: "Invalid HTTP response code", Code: resp.StatusCode}
 	}
 }
 
@@ -1450,13 +1413,13 @@ func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.C
 			return resp.Cookies(), nil
 		}
 	}
-	return nil, errors.New("can't authenticate please check credentials,base url or apikey")
+	return nil, &ZIAError{Err: "can't authenticate please check credentials,base url or apikey"}
 }
 
 //obfuscateApiKey ofuscates the API key based on Zscaler documentation
 func obfuscateApiKey(api string, t string) (string, error) {
 	if len(t) < 6 {
-		return "", errors.New("time lenght for ofuscation is less than 6 digits, please check your system's clock")
+		return "", &ZIAError{Err: "time lenght for ofuscation is less than 6 digits, please check your system's clock"}
 	}
 	n := t[len(t)-6:]
 	intVar, err := strconv.Atoi(n)
@@ -1471,7 +1434,7 @@ func obfuscateApiKey(api string, t string) (string, error) {
 			return "", err
 		}
 		if d+1 > len(api) {
-			return "", errors.New("invalid api key size")
+			return "", &ZIAError{Err: "invalid api key size"}
 		}
 		key += api[d : d+1]
 	}
@@ -1481,7 +1444,7 @@ func obfuscateApiKey(api string, t string) (string, error) {
 			return "", err
 		}
 		if d+3 > len(api) {
-			return "", errors.New("invalid api key size")
+			return "", &ZIAError{Err: "invalid api key size"}
 		}
 		key += api[d+2 : d+3]
 	}
