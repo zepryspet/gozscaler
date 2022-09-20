@@ -1018,6 +1018,15 @@ func (c *Client) AddDLPDictionary(obj DLPDictionary) (int, error) {
 	return res.ID, nil
 }
 
+//Activate activates all changes
+func (c *Client) Activate() error {
+	_, err := c.postRequest("/status/activate", nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //Edit adds a new location or sublocation and returns the new object ID
 func (c *Client) UpdateDLPDictionary(obj DLPDictionary) error {
 	postBody, e := json.Marshal(obj)
