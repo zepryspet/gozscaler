@@ -74,6 +74,7 @@ type UrlRule struct {
 type NameID struct {
 	ID   int    `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
+	Uuid string `json:"uuid,omitempty"`
 }
 
 //AppGroup parses network application groups
@@ -610,7 +611,9 @@ type retry struct {
 }
 
 //NewClient returns a client with the auth cookie, default http timeouts and max retries per requests
-func NewClient(BaseURL string, admin string, pass string, apiKey string) (*Client, error) {
+//cloud options: zscaler, zscalertwo, zscloud, etc.
+func NewClient(cloud string, admin string, pass string, apiKey string) (*Client, error) {
+	BaseURL := "https://zsapi." + cloud + ".net/api/v1"
 	cookie, err := KeyGen(BaseURL, admin, pass, apiKey)
 	if err != nil {
 		return &Client{}, err
@@ -628,7 +631,7 @@ func NewClient(BaseURL string, admin string, pass string, apiKey string) (*Clien
 		BaseURL: BaseURL,
 		HTTPClient: &http.Client{
 			Jar:     CookieJar,
-			Timeout: time.Second * 10,
+			Timeout: time.Second * 20,
 		},
 		RetryMax: 10,
 	}, nil
