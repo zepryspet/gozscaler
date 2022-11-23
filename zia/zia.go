@@ -92,31 +92,51 @@ func (u AppGroup) GetID() (string, int) {
 
 //UrlCat parses responses for urls categories
 type UrlCat struct {
-	ID                              string   `json:"id"`
+	ID                              string   `json:"id"` // This goes from CUSTOM_00 to CUSTOM_256
 	ConfiguredName                  string   `json:"configuredName"`
 	Keywords                        []string `json:"keywords,omitempty"`
 	KeywordsRetainingParentCategory []string `json:"keywordsRetainingParentCategory,omitempty"`
 	Urls                            []string `json:"urls,omitempty"`
 	DbCategorizedUrls               []string `json:"dbCategorizedUrls,omitempty"`
-	CustomCategory                  bool     `json:"customCategory"`
-	SuperCategory                   string   `json:"superCategory,omitempty"`
+	IPRanges                        []string `json:"ipRanges,omitempty"`
+	IPRangesRetainingParentCategory []string `json:"ipRangesRetainingParentCategory,omitempty"`
+	CustomCategory                  bool     `json:"customCategory"` //set to true if custom
+	SuperCategory                   string   `json:"superCategory"`  //Use USER_DEFINED for custom category creation
 	Scopes                          []struct {
-		ScopeGroupMemberEntities []NameID `json:"scopeGroupMemberEntities"`
-		Type                     string   `json:"Type"`
-		ScopeEntities            []NameID `json:"ScopeEntities"`
+		ScopeGroupMemberEntities []struct {
+			ID         int    `json:"id"`
+			Name       string `json:"name"`
+			Extensions struct {
+				AdditionalProp1 string `json:"additionalProp1"`
+				AdditionalProp2 string `json:"additionalProp2"`
+				AdditionalProp3 string `json:"additionalProp3"`
+			} `json:"extensions"`
+		} `json:"scopeGroupMemberEntities"`
+		Type          string `json:"Type"`
+		ScopeEntities []struct {
+			ID         int    `json:"id"`
+			Name       string `json:"name"`
+			Extensions struct {
+				AdditionalProp1 string `json:"additionalProp1"`
+				AdditionalProp2 string `json:"additionalProp2"`
+				AdditionalProp3 string `json:"additionalProp3"`
+			} `json:"extensions"`
+		} `json:"ScopeEntities"`
 	} `json:"scopes,omitempty"`
 	Editable         bool   `json:"editable"`
 	Description      string `json:"description"`
 	Type             string `json:"type"`
-	URLKeywordCounts struct {
+	URLKeywordCounts *struct {
 		TotalURLCount            int `json:"totalUrlCount"`
 		RetainParentURLCount     int `json:"retainParentUrlCount"`
 		TotalKeywordCount        int `json:"totalKeywordCount"`
 		RetainParentKeywordCount int `json:"retainParentKeywordCount"`
 	} `json:"urlKeywordCounts,omitempty"`
-	Val                              int `json:"val,omitempty"`
-	CustomUrlsCount                  int `json:"customUrlsCount,omitempty"`
-	UrlsRetainingParentCategoryCount int `json:"urlsRetainingParentCategoryCount,omitempty"`
+	Val                                  int `json:"val,omitempty"`
+	CustomUrlsCount                      int `json:"customUrlsCount,omitempty"`
+	UrlsRetainingParentCategoryCount     int `json:"urlsRetainingParentCategoryCount,omitempty"`
+	CustomIPRangesCount                  int `json:"customIpRangesCount,omitempty"`
+	IPRangesRetainingParentCategoryCount int `json:"ipRangesRetainingParentCategoryCount,omitempty"`
 }
 
 //GetID returns name, id
