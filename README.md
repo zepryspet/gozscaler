@@ -106,20 +106,26 @@ _Below is an example of how you can get started._
     ```
 2. Open the file `main.go` and add the following program that display your url rules
    ```go
-   package main.go
-   include github.com/zepryspet/gozscaler/zia
-   func main(){
-        c, err := zia.Newclient(cloudname, admin, password, apikey)
-        if err != nil{
+    package main
+
+    import (
+        "fmt"
+        "log"
+        "github.com/zepryspet/gozscaler/zia"
+    )
+
+    func main() {
+        c, err := zia.NewClient(cloudname, admin, password, apikey)
+        if err != nil {
             log.Panic(err)
         }
-        rules, err : = c.ListUrlRules()
-        if err != nil{
+        rules, err := c.ListUrlRules()
+        if err != nil {
             log.Panic(err)
         }
         fmt.Println(rules)
-   }
-   ```
+    }
+    ```
 3. Init go.mod
     ```go
     go mod init

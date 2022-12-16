@@ -386,6 +386,7 @@ type UrlLookup struct {
 	URL       string   `json:"url"`
 	URLCat    []string `json:"urlClassifications"`
 	URLCatSec []string `json:"urlClassificationsWithSecurityAlert"`
+	Error     string   `json:"error,omitempty"`
 }
 
 //DLPDictionary holds the DLP dictionaries from ZIA
