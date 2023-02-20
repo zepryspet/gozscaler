@@ -894,6 +894,7 @@ func (c *Client) GetAppConnectorGroups() ([]AppConnectorGroup, error) {
 
 //AddAppConnectorGroup adds a AppConnectorGroup
 func (c *Client) AddAppConnectorGroup(obj AppConnectorGroup) (string, error) {
+	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
 	tmp, err := PostObj(c, path, obj)
 	return tmp.ID, err
