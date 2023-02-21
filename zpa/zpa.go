@@ -776,6 +776,7 @@ func (c *Client) GetAppSegments() ([]AppSegment, error) {
 
 //AddAppSegment adds an app segments
 func (c *Client) AddAppSegment(obj AppSegment) (string, error) {
+	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
 	tmp, err := PostObj(c, path, obj)
 	return tmp.ID, err
@@ -801,6 +802,7 @@ func (c *Client) GetSegmentGroups() ([]SegmentGroup, error) {
 
 //AddSegmentGroup adds an app segments
 func (c *Client) AddSegmentGroup(obj SegmentGroup) (string, error) {
+	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
 	tmp, err := PostObj(c, path, obj)
 	return tmp.ID, err
@@ -826,6 +828,7 @@ func (c *Client) GetServers() ([]Server, error) {
 
 //AddServer adds a server
 func (c *Client) AddServer(obj Server) (string, error) {
+	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
 	tmp, err := PostObj(c, path, obj)
 	return tmp.ID, err
@@ -851,6 +854,7 @@ func (c *Client) GetServerGroups() ([]ServerGroup, error) {
 
 //AddServer adds a server
 func (c *Client) AddServerGroup(obj ServerGroup) (string, error) {
+	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
 	tmp, err := PostObj(c, path, obj)
 	return tmp.ID, err
@@ -999,6 +1003,7 @@ func (c *Client) GetPostureProfiles() ([]PostureProfile, error) {
 //Function NewClient() returns a client with the policyIDs, if you're not using this function make sure the client has those variables.
 //You can use functions GetXXXXPolicyID() to get the needed policy ID
 func (c *Client) AddPolicy(obj Policy) (string, error) {
+	obj.ID = ""
 	path := ""
 	if c.Policy == "access" {
 		path = "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + c.AccessID + "/rule"
