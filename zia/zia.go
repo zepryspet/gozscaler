@@ -341,10 +341,10 @@ func (u Department) GetID() (string, int) {
 
 //UserGroup parses UserGroup
 type UserGroup struct {
-	ID       int    `json:"id"`
+	ID       int    `json:"id, omitempty""`
 	Name     string `json:"name"`
-	IdpID    int    `json:"idpId"`
-	Comments string `json:"comments"`
+	IdpID    int    `json:"idpId, omitempty""`
+	Comments string `json:"comments,omitempty""`
 }
 
 //GetID return the name a string and the ID as int
@@ -354,7 +354,7 @@ func (u UserGroup) GetID() (string, int) {
 
 //Users parses Users
 type User struct {
-	ID            int         `json:"id"`
+	ID            int         `json:"id,omitempty"`
 	Name          string      `json:"name"`
 	Email         string      `json:"email"`
 	Groups        []UserGroup `json:"groups,omitempty"`
@@ -944,6 +944,22 @@ func (c *Client) GetUsersPaged(page int, pageSize int) ([]User, error) {
 	return res, nil
 }
 
+//AddUser adds a new user and returns the new object ID
+func (c *Client) AddUser(user User) (int, error) {
+	res := User{}
+	postBody, _ := json.Marshal(user)
+	body, err := c.postRequest("/users", postBody)
+	if err != nil {
+		return 0, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, nil
+}
+
+
 //UpdateUser updates the user info using the provided user object
 func (c *Client) UpdateUser(user User) error {
 	path := "/users/" + strconv.Itoa(user.ID)
@@ -985,7 +1001,7 @@ func (c *Client) AddLocation(obj Location) (int, error) {
 	return res.ID, err
 }
 
-//Edit adds a new location or sublocation and returns the new object ID
+//Edit updates a new location or sublocation and returns the new object ID
 func (c *Client) UpdateLocation(obj Location) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1051,7 +1067,7 @@ func (c *Client) Activate() error {
 	return nil
 }
 
-//Edit adds a new location or sublocation and returns the new object ID
+//Edit updates a new location or sublocation and returns the new object ID
 func (c *Client) UpdateDLPDictionary(obj DLPDictionary) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1093,7 +1109,7 @@ func (c *Client) GetDLPNotificationTemplates() ([]DLPNotificationTemplate, error
 	return res, nil
 }
 
-//AddDLPNotificationTemplates add a DLP notification template
+//AddDLPNotificationTemplates adds a DLP notification template
 func (c *Client) AddDLPNotificationTemplate(entry DLPNotificationTemplate) (int, error) {
 	res := DLPNotificationTemplate{}
 	postBody, _ := json.Marshal(entry)
@@ -1151,7 +1167,7 @@ func (c *Client) AddDLPRule(item DLPRule) (int, error) {
 	return res.ID, nil
 }
 
-//AddUrlRule adds a URL filtering category
+//AddUrlCat adds a URL filtering category
 func (c *Client) AddUrlCat(category UrlCat) (string, error) {
 	res := UrlCat{}
 	postBody, _ := json.Marshal(category)
