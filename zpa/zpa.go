@@ -417,6 +417,7 @@ type AppConnectorGroup struct {
 	Enabled                       bool           `json:"enabled,omitempty"`
 	GeoLocationID                 string         `json:"geoLocationId,omitempty"`
 	ID                            string         `json:"id"`
+	IPACL                         []string       `json:"ipAcl,omitempty"`
 	Latitude                      string         `json:"latitude,omitempty"`
 	Location                      string         `json:"location,omitempty"`
 	Longitude                     string         `json:"longitude,omitempty"`
@@ -482,6 +483,17 @@ func (obj *AppConnectorGroup) ResetID(m map[string]string) bool {
 		}
 	}
 	obj.ServerGroups = SrvGrp
+	//Checking Version profile
+	vid, ok := m[obj.VersionProfileID]
+	if ok {
+		obj.VersionProfileID = vid
+	} else {
+		obj.Description += "\n ---->Version profile:" + obj.VersionProfileName + " not found setting as default:"
+		obj.OverrideVersionProfile = false
+		obj.VersionProfileID = ""
+		obj.VersionProfileName = ""
+		notFound = true
+	}
 	return notFound
 }
 
@@ -735,7 +747,7 @@ type SCIMAttr struct {
 //SCIMGroup holds the IDP scim groups
 type SCIMGroup struct {
 	CreationTime int    `json:"creationTime,omitempty"`
-	ID           int    `json:"id,omitempty,omitempty"`
+	ID           int    `json:"id,omitempty"`
 	IdpGroupID   string `json:"idpGroupId,omitempty"`
 	IdpID        int    `json:"idpId,omitempty"`
 	ModifiedTime int    `json:"modifiedTime,omitempty"`
@@ -756,6 +768,28 @@ type PostureProfile struct {
 	ZscalerCustomerID int    `json:"zscalerCustomerId,omitempty"`
 }
 
+type VersionProfile struct {
+	ID              string `json:"id,omitempty"`
+	ModifiedTime    string `json:"modifiedTime,omitempty"`
+	CreationTime    string `json:"creationTime,omitempty"`
+	ModifiedBy      string `json:"modifiedBy,omitempty"`
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	UpgradePriority string `json:"upgradePriority,omitempty"`
+	VisibilityScope string `json:"visibilityScope,omitempty"`
+	CustomerID      string `json:"customerId,omitempty"`
+}
+
+//GetID return the object name, ID
+func (obj VersionProfile) GetID() (string, string) {
+	return obj.Name, obj.ID
+}
+
+//Create doesn't exist with version profile
+func (obj VersionProfile) Create(c *Client) (string, error) {
+	return "", nil
+}
+
 //Struct helpers
 
 //NamedID helps json structs with name and id
@@ -772,6 +806,12 @@ type NameID struct {
 func (c *Client) GetAppSegments() ([]AppSegment, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
 	return GetPaged(c, 500, path, []AppSegment{})
+}
+
+//GetAppSegments gets a list of app segments
+func (c *Client) GetVersionProfiles() ([]VersionProfile, error) {
+	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/visible/versionProfiles"
+	return GetPaged(c, 500, path, []VersionProfile{})
 }
 
 //AddAppSegment adds an app segments
