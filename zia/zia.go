@@ -707,6 +707,14 @@ func (c *Client) AddUrlRule(rule UrlRule) (int, error) {
 	return res.ID, nil
 }
 
+//UpdateUrlRule updates the user info using the provided user object
+func (c *Client) UpdateUrlRule(rule UrlRule) error {
+	path := "/urlFilteringRules/" + strconv.Itoa(rule.ID)
+	postBody, _ := json.Marshal(rule)
+	err := c.putRequest(path, postBody)
+	return err
+}
+
 //GetFwRules gets a list of firewall filtering rules
 func (c *Client) GetFwRules() ([]FwRule, error) {
 	body, err := c.getRequest("/firewallFilteringRules")
@@ -1136,7 +1144,7 @@ func (c *Client) GetDLPRules() ([]DLPRule, error) {
 	return res, nil
 }
 
-//AddUrlRule adds a URL filtering category
+//AddDLPRule adds a URL filtering category
 func (c *Client) AddDLPRule(item DLPRule) (int, error) {
 	res := DLPRule{}
 	postBody, _ := json.Marshal(item)
@@ -1151,7 +1159,7 @@ func (c *Client) AddDLPRule(item DLPRule) (int, error) {
 	return res.ID, nil
 }
 
-//AddUrlRule adds a URL filtering category
+//AddUrlCat adds a URL filtering category
 func (c *Client) AddUrlCat(category UrlCat) (string, error) {
 	res := UrlCat{}
 	postBody, _ := json.Marshal(category)
