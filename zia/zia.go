@@ -637,7 +637,7 @@ func NewClient(cloud string, admin string, pass string, apiKey string) (*Client,
 	BaseURL := "https://zsapi." + cloud + ".net/api/v1"
 	cookie, err := KeyGen(BaseURL, admin, pass, apiKey)
 	if err != nil {
-		return &Client{}, err
+		return &Client{}, fmt.Errorf("module:gozscaler. error login with username: %v, error:%v", admin, err)
 	}
 	CookieJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -966,7 +966,6 @@ func (c *Client) AddUser(user User) (int, error) {
 	}
 	return res.ID, nil
 }
-
 
 //UpdateUser updates the user info using the provided user object
 func (c *Client) UpdateUser(user User) error {

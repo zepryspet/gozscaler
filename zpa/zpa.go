@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
@@ -1261,17 +1262,17 @@ func httpStatusCheck(resp *http.Response) error {
 		return nil
 	} else if resp.StatusCode == 400 {
 		b, _ := io.ReadAll(resp.Body)
-		return errors.New("HTTP error: Invalid or bad request. " + string(b))
+		return errors.New("http error: Invalid or bad request. " + string(b))
 	} else if resp.StatusCode == 401 {
-		return errors.New("HTTP error: Session is not authenticated or timed out")
+		return errors.New("http error: Session is not authenticated or timed out")
 	} else if resp.StatusCode == 403 {
-		return errors.New("HTTP error: The API key was disabled by your service provider, User's role has no access permissions or functional scope or a required SKU subscription is missing")
+		return errors.New("http error: The API key was disabled by your service provider, User's role has no access permissions or functional scope or a required SKU subscription is missing")
 	} else if resp.StatusCode == 404 {
-		return errors.New("Not found")
+		return errors.New("not found")
 	} else if resp.StatusCode == 429 {
-		return errors.New("HTTP error: Exceeded the rate limit or quota.")
+		return errors.New("http error: exceeded the rate limit or quota")
 	} else {
-		return errors.New("Invalid HTTP response code: " + strconv.Itoa(resp.StatusCode))
+		return errors.New("invalid http response code: " + strconv.Itoa(resp.StatusCode))
 	}
 }
 
@@ -1285,7 +1286,7 @@ func NewClientBase(BaseURL string, client_id string, client_secret string, Custo
 	//Getting access token
 	access_token, err := KeyGen(BaseURL, client_id, client_secret)
 	if err != nil {
-		return &Client{}, err
+		return &Client{}, fmt.Errorf("error login with client id: %v, error:%v", client_id, err)
 	}
 	//Returning client
 	return &Client{
