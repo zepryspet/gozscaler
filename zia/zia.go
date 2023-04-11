@@ -1530,8 +1530,7 @@ func obfuscateApiKey(api string, t string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	r := fmt.Sprintf("%06d", intVar
-  1)
+	r := fmt.Sprintf("%06d", intVar>>1)
 	key := ""
 	for i, _ := range n {
 		d, err := strconv.Atoi((n)[i : i+1])
