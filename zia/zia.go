@@ -250,6 +250,14 @@ type VpnLocation struct {
 	Comments     string `json:"comments"`
 }
 
+//UserFilter filter user searches
+// The name search parameter performs a partial match. The dept and group parameters perform a 'starts with' match.
+type UserFilter struct {
+	Name  string
+	Dept  string
+	Group string
+}
+
 //Location parses locations
 type Location struct {
 	ID                                  int           `json:"id,omitempty"`
@@ -341,10 +349,10 @@ func (u Department) GetID() (string, int) {
 
 //UserGroup parses UserGroup
 type UserGroup struct {
-	ID       int    `json:"id, omitempty""`
+	ID       int    `json:"id,omitempty"`
 	Name     string `json:"name"`
-	IdpID    int    `json:"idpId, omitempty""`
-	Comments string `json:"comments,omitempty""`
+	IdpID    int    `json:"idpId,omitempty"`
+	Comments string `json:"comments,omitempty"`
 }
 
 //GetID return the name a string and the ID as int
@@ -457,7 +465,7 @@ type DLPEngine struct {
 
 //GetID return the name a string and the ID as int
 func (u DLPEngine) GetID() (string, int) {
-	if u.CustomDlpEngine == false {
+	if !u.CustomDlpEngine {
 		return u.PredefinedEngineName, u.ID
 	} else {
 		return u.Name, u.ID
@@ -933,6 +941,36 @@ func (c *Client) GetUsers() ([]User, error) {
 	return getPaged[User](c, 1000, "/users")
 }
 
+//GetUsersFilter return all the ZIA users matching the filter
+func (c *Client) GetUsersFilter(filter UserFilter) ([]User, error) {
+	queries := url.Values{}
+	if filter.Dept != "" {
+		queries.Set("dept", filter.Dept)
+	}
+	if filter.Group != "" {
+		queries.Set("group", filter.Group)
+	}
+	if filter.Name != "" {
+		queries.Set("name", filter.Name)
+	}
+	return getPagedQuery[User](c, 1000, "/users", queries)
+}
+
+//GetUser return the ZIA user
+func (c *Client) GetUser(id int) (User, error) {
+	body, err := c.getRequest("/users/" + strconv.Itoa(id))
+	res := User{}
+	if err != nil {
+		return res, err
+	}
+
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
 //GetUsersPaged allows you to request between 100 and 1000 items
 func (c *Client) GetUsersPaged(page int, pageSize int) ([]User, error) {
 	//Validating pagezise
@@ -1249,14 +1287,24 @@ func (c *Client) RepAllowedUrls(urls AllowedUrls) error {
 
 //GetPaged is a generic function that iterates through multiple pageds and returns the joined parsed object
 func getPaged[K any](c *Client, pageSize int, path string) ([]K, error) {
+	return getPagedQuery[K](c, pageSize, path, url.Values{})
+}
+
+//getPagedQuery is a generic function that iterates through multiple pageds and returns the joined parsed object
+//It received query parameters in case we want to add more than pageSize
+func getPagedQuery[K any](c *Client, pageSize int, path string, queries url.Values) ([]K, error) {
 	var ret []K
-	//Creating tmp struct to unmarshal to.
-	var tmp []K
 	//Setting the 1st page number
 	page := 1
 	//iterating over all pages to get all
+	//Setting pagesize
+	queries.Set("pageSize", strconv.Itoa(pageSize))
 	for {
-		npath := path + "?page=" + strconv.Itoa(page) + "&pageSize=" + strconv.Itoa(pageSize)
+		//Creating tmp struct to unmarshal to.
+		var tmp []K
+		//setting page number
+		queries.Set("page", strconv.Itoa(page))
+		npath := path + "?" + queries.Encode()
 		body, err := c.getRequest(npath)
 		if err != nil {
 			//check status code and return response if 400
@@ -1482,7 +1530,8 @@ func obfuscateApiKey(api string, t string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	r := fmt.Sprintf("%06d", intVar>>1)
+	r := fmt.Sprintf("%06d", intVar
+  1)
 	key := ""
 	for i, _ := range n {
 		d, err := strconv.Atoi((n)[i : i+1])
