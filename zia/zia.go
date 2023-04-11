@@ -645,7 +645,7 @@ func NewClient(cloud string, admin string, pass string, apiKey string) (*Client,
 	BaseURL := "https://zsapi." + cloud + ".net/api/v1"
 	cookie, err := KeyGen(BaseURL, admin, pass, apiKey)
 	if err != nil {
-		return &Client{}, err
+		return &Client{}, fmt.Errorf("module:gozscaler. error login with username: %v, error:%v", admin, err)
 	}
 	CookieJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -990,6 +990,22 @@ func (c *Client) GetUsersPaged(page int, pageSize int) ([]User, error) {
 	return res, nil
 }
 
+//AddUser adds a new user and returns the new object ID
+func (c *Client) AddUser(user User) (int, error) {
+	res := User{}
+	postBody, _ := json.Marshal(user)
+	body, err := c.postRequest("/users", postBody)
+	if err != nil {
+		return 0, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, nil
+}
+
+//UpdateUser updates the user info using the provided user object
 func (c *Client) UpdateUser(user User) error {
 	path := "/users/" + strconv.Itoa(user.ID)
 	postBody, _ := json.Marshal(user)
@@ -1514,7 +1530,8 @@ func obfuscateApiKey(api string, t string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	r := fmt.Sprintf("%06d", intVar>>1)
+	r := fmt.Sprintf("%06d", intVar
+  1)
 	key := ""
 	for i, _ := range n {
 		d, err := strconv.Atoi((n)[i : i+1])
