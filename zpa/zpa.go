@@ -417,7 +417,7 @@ type AppConnectorGroup struct {
 	DNSQueryType                  string         `json:"dnsQueryType,omitempty"`
 	Enabled                       bool           `json:"enabled,omitempty"`
 	GeoLocationID                 string         `json:"geoLocationId,omitempty"`
-	ID                            string         `json:"id"`
+	ID                            string         `json:"id,omitempty"`
 	IPACL                         []string       `json:"ipAcl,omitempty"`
 	Latitude                      string         `json:"latitude,omitempty"`
 	Location                      string         `json:"location,omitempty"`
