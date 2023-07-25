@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-//ZIAError is the error
+// ZIAError is the error
 type ZCCError struct {
 	//this is the Error
 	Err string
@@ -25,7 +25,7 @@ type ZCCError struct {
 	Code int
 }
 
-//DeviceFilter filters enrolled devices.
+// DeviceFilter filters enrolled devices.
 type DeviceFilter struct {
 	// The following values represent different OS types:
 	//1 - iOS
@@ -44,18 +44,18 @@ func (e *ZCCError) Error() string {
 	return e.Err
 }
 
-//myToken parses the authentication request
+// myToken parses the authentication request
 type auth struct {
 	ApiKey    string `json:"apiKey"`    //client id obtainted from the mobile portal
 	SecretKey string `json:"secretKey"` // client secret obtainted from the mobile  portal
 }
 
-//myToken parses the authentication response
+// myToken parses the authentication response
 type myToken struct {
 	Token string `json:"jwtToken"`
 }
 
-//Device holds de device information
+// Device holds de device information
 type Device struct {
 	User                    string `json:"user" csv:"User"`
 	Udid                    string `json:"udid" csv:"UDID"`
@@ -95,7 +95,7 @@ type Device struct {
 	ZappArch                string `json:"zappArch"`
 }
 
-//Client is the struct holding the client parameters for http calls
+// Client is the struct holding the client parameters for http calls
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
@@ -103,7 +103,7 @@ type Client struct {
 	Token      string
 }
 
-//Authenticate receives autentication information and returns the authentication token and error if exist
+// Authenticate receives autentication information and returns the authentication token and error if exist
 func Authenticate(base_url string, client_id string, secret_key string) (string, error) {
 	url := base_url + "/auth/v1/login"
 	payload := auth{ApiKey: client_id, SecretKey: secret_key}
@@ -135,11 +135,11 @@ func Authenticate(base_url string, client_id string, secret_key string) (string,
 	return token.Token, nil
 }
 
-//Newclient wraps the authenticate function and return a client that will have all the http calls.
-//Base URL changes based on cloud name.
-//cloudName can be zscalertwo, zscaler, zscloud, zscalerbeta, etc
-//clientSecret is generated once in the mobile portal, if you can see it generate a new one
-//clientID can be seen in the mobile portal
+// Newclient wraps the authenticate function and return a client that will have all the http calls.
+// Base URL changes based on cloud name.
+// cloudName can be zscalertwo, zscaler, zscloud, zscalerbeta, etc
+// clientSecret is generated once in the mobile portal, if you can see it generate a new one
+// clientID can be seen in the mobile portal
 func NewClient(cloudName string, clientID string, clientSecret string) (*Client, error) {
 	BaseURL := "https://api-mobile." + cloudName + ".net/papi"
 	//Validating URL
@@ -163,12 +163,12 @@ func NewClient(cloudName string, clientID string, clientSecret string) (*Client,
 
 }
 
-//GetDevices get all the devices enrolled in ZCC mobile portal
+// GetDevices get all the devices enrolled in ZCC mobile portal
 func (c *Client) GetDevices() ([]Device, error) {
 	return getPaged[Device](c, 50, "/getDevices")
 }
 
-//GetFilteredDevices get all the devices enrolled in ZCC mobile portal given the filters
+// GetFilteredDevices get all the devices enrolled in ZCC mobile portal given the filters
 func (c *Client) GetFilteredDevices(filter DeviceFilter) ([]Device, error) {
 	queries := url.Values{}
 	if filter.OsType != 0 {
@@ -180,19 +180,19 @@ func (c *Client) GetFilteredDevices(filter DeviceFilter) ([]Device, error) {
 	return getPagedQuery[Device](c, 1000, "/getDevices", queries)
 }
 
-//GetAllDevices uses the downloadDevices public api which downloads all enrolled devices in a single call
-//This call is rate limited to 3 per day per IP so use with caution
+// GetAllDevices uses the downloadDevices public api which downloads all enrolled devices in a single call
+// This call is rate limited to 3 per day per IP so use with caution
 func (c *Client) GetAllDevices() ([]Device, error) {
 	body, err := c.getRequest("/downloadDevices")
 	if err != nil {
 		return []Device{}, err
 	}
-	return readCSV(string(body[:]))
+	return ParseDeviceCSV(body)
 }
 
-func readCSV(in string) ([]Device, error) {
+func ParseDeviceCSV(in []byte) ([]Device, error) {
 	ret := []Device{}
-	r := csv.NewReader(strings.NewReader(in))
+	r := csv.NewReader(strings.NewReader(string(in[:])))
 	//header
 	header, err := r.Read()
 	if err != nil {
@@ -264,7 +264,7 @@ func GetCSVIndex(header []string, v interface{}) (map[string]int, error) {
 	return ret, nil
 }
 
-//findIndex find index in array, returns -1 if not found
+// findIndex find index in array, returns -1 if not found
 func findIndex(arr []string, val string) int {
 	for i, v := range arr {
 		if v == val {
@@ -274,13 +274,13 @@ func findIndex(arr []string, val string) int {
 	return -1
 }
 
-//GetPaged is a generic function that iterates through multiple pageds and returns the joined parsed object
+// GetPaged is a generic function that iterates through multiple pageds and returns the joined parsed object
 func getPaged[K any](c *Client, pageSize int, path string) ([]K, error) {
 	return getPagedQuery[K](c, pageSize, path, url.Values{})
 }
 
-//getPagedQuery is a generic function that iterates through multiple pageds and returns the joined parsed object
-//It received query parameters in case we want to add more than pageSize
+// getPagedQuery is a generic function that iterates through multiple pageds and returns the joined parsed object
+// It received query parameters in case we want to add more than pageSize
 func getPagedQuery[K any](c *Client, pageSize int, path string, queries url.Values) ([]K, error) {
 	var ret []K
 	//Setting the 1st page number
@@ -325,7 +325,7 @@ func getPagedQuery[K any](c *Client, pageSize int, path string, queries url.Valu
 	return ret, nil
 }
 
-//getRequest Process and sends HTTP GET requests
+// getRequest Process and sends HTTP GET requests
 func (c *Client) getRequest(path string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
@@ -334,7 +334,7 @@ func (c *Client) getRequest(path string) ([]byte, error) {
 	return c.do(req)
 }
 
-//do Function de send the HTTP request and return the response and error
+// do Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
 	//Adding auth header
@@ -342,7 +342,7 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 	return c.doWithOptions(req, retryMax)
 }
 
-//doWithOptions Wrapper that receives options and sends an http request
+// doWithOptions Wrapper that receives options and sends an http request
 func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) {
 	//Extracting body payload
 	req, payload := getReqBody(req)
@@ -381,7 +381,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	return ioutil.ReadAll(resp.Body)
 }
 
-//getReqBody Finds http payload and resets it
+// getReqBody Finds http payload and resets it
 func getReqBody(req *http.Request) (*http.Request, []byte) {
 	if req.Method == "POST" || req.Method == "PUT" {
 		//Find payload and reset it
@@ -393,7 +393,7 @@ func getReqBody(req *http.Request) (*http.Request, []byte) {
 	}
 }
 
-//retryAfter will return the number of seconds an API request needs to wait before trying again
+// retryAfter will return the number of seconds an API request needs to wait before trying again
 func retryAfter(remainingRetries, retries int) int64 {
 	//Detecting which number this retry is
 	d := retries - remainingRetries
@@ -401,8 +401,8 @@ func retryAfter(remainingRetries, retries int) int64 {
 	return int64(math.Pow(2, float64(d)))
 }
 
-//httpStatusCheck receives an http response and returns an error based on zscaler documentation.
-//From https://help.zscaler.com/zia/about-error-handling
+// httpStatusCheck receives an http response and returns an error based on zscaler documentation.
+// From https://help.zscaler.com/zia/about-error-handling
 func httpStatusCheck(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		return nil
