@@ -66,7 +66,7 @@ type Device struct {
 	PolicyName              string `json:"policyName" csv:"Policy Name"`
 	VpnStateString          string `csv:"VPN State"`
 	VpnState                int    `json:"vpnState" `
-	RegistrationState       string `json:"registrationState" csv:"Device State"`
+	RegistrationState       string `json:"registrationState" csv:"Device State|Registration State"`
 	Owner                   string `json:"owner" csv:"Owner"`
 	MachineHostname         string `json:"machineHostname" csv:"Hostname"`
 	Manufacturer            string `json:"manufacturer" csv:"Manufacturer"`
@@ -93,6 +93,16 @@ type Device struct {
 	Type                    int    `json:"type"`
 	UpmVersion              string `json:"upmVersion"`
 	ZappArch                string `json:"zappArch"`
+	//Device state
+	ZIAEnabled       string `csv:"ZIA Enabled"`
+	ZIAHealth        string `csv:"ZIA Health"`
+	ZIALastConnected string `csv:"Last Seen Connected to ZIA"`
+	ZPAEnabled       string `csv:"ZPA Enabled"`
+	ZPAHealth        string `csv:"ZPA Health"`
+	ZPALastConnected string `csv:"Last Seen Connected to ZPA"`
+	ZDXEnabled       string `csv:"ZDX Enabled"`
+	ZDXHealth        string `csv:"ZDX Health"`
+	ZDXLastConnected string `csv:"Last Seen Connected to ZDX"`
 }
 
 // Client is the struct holding the client parameters for http calls
@@ -190,6 +200,16 @@ func (c *Client) GetAllDevices() ([]Device, error) {
 	return ParseDeviceCSV(body)
 }
 
+// GetServiceStatus uses the downloadServiceStatus public api which downloads all enrolled devices in a single call
+// This call is rate limited to 3 per day per IP so use with caution. It only contains service status
+func (c *Client) GetServiceStatus() ([]Device, error) {
+	body, err := c.getRequest("/downloadServiceStatus")
+	if err != nil {
+		return []Device{}, err
+	}
+	return ParseDeviceCSV(body)
+}
+
 func ParseDeviceCSV(in []byte) ([]Device, error) {
 	ret := []Device{}
 	r := csv.NewReader(strings.NewReader(string(in[:])))
@@ -198,10 +218,7 @@ func ParseDeviceCSV(in []byte) ([]Device, error) {
 	if err != nil {
 		return ret, err
 	}
-	index, err := GetCSVIndex(header, Device{})
-	if err != nil {
-		return ret, err
-	}
+	index := GetCSVIndex(header, Device{})
 	for {
 		record, err := r.Read()
 		// Stop at EOF.
@@ -227,41 +244,56 @@ func Unmarshal(record []string, index map[string]int, v interface{}) error {
 	for i := 0; i < s.NumField(); i++ {
 		//only csv tags
 		field := st.Field(i)
-		tag := field.Tag.Get("csv")
-		if tag != "" {
-			f := s.Field(i)
-			switch f.Type().String() {
-			case "string":
-				f.SetString(record[index[field.Name]])
-			case "int":
-				ival, err := strconv.ParseInt(record[index[field.Name]], 10, 0)
-				if err != nil {
-					return err
+		tags := splitTag(field.Tag.Get("csv"))
+		for _, tag := range tags {
+			if tag != "" {
+				//Making sure index for header exist
+				value, ok := index[field.Name]
+				if ok {
+					f := s.Field(i)
+					switch f.Type().String() {
+					case "string":
+						f.SetString(record[value])
+					case "int":
+						ival, err := strconv.ParseInt(record[value], 10, 0)
+						if err != nil {
+							return err
+						}
+						f.SetInt(ival)
+					default:
+						return fmt.Errorf("unssuported type: %v", f.Type().String())
+					}
 				}
-				f.SetInt(ival)
-			default:
-				return fmt.Errorf("unssuported type: %v", f.Type().String())
 			}
 		}
+
 	}
 	return nil
 }
 
-func GetCSVIndex(header []string, v interface{}) (map[string]int, error) {
+func GetCSVIndex(header []string, v interface{}) map[string]int {
 	ret := make(map[string]int)
 	st := reflect.TypeOf(v)
 	for i := 0; i < st.NumField(); i++ {
 		field := st.Field(i)
-		tag := field.Tag.Get("csv")
-		if tag != "" { //only maps non-empty csv tags
-			index := findIndex(header, tag)
-			if index == -1 {
-				return ret, fmt.Errorf("couldn't find tag %v on csv header", tag)
+		tags := splitTag(field.Tag.Get("csv"))
+		for _, tag := range tags {
+			if tag != "" { //only maps non-empty csv tags
+				index := findIndex(header, tag)
+				//Only add it if it exist
+				if index != -1 {
+					ret[field.Name] = index
+				}
+
 			}
-			ret[field.Name] = index
 		}
+
 	}
-	return ret, nil
+	return ret
+}
+
+func splitTag(tag string) []string {
+	return strings.Split(tag, "|")
 }
 
 // findIndex find index in array, returns -1 if not found
