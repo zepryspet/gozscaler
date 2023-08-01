@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-//ZIAError is the error
+// ZIAError is the error
 type ZIAError struct {
 	//this is the Error
 	Err string
@@ -29,14 +29,14 @@ func (e *ZIAError) Error() string {
 	return e.Err
 }
 
-//Client contains the base url, http client and max number of retries per requests
+// Client contains the base url, http client and max number of retries per requests
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
 	RetryMax   int
 }
 
-//UrlRule parses responses for urls policies
+// UrlRule parses responses for urls policies
 type UrlRule struct {
 	ID                     int      `json:"id"`
 	Name                   string   `json:"name"`
@@ -70,14 +70,14 @@ type UrlRule struct {
 	Ciparule               bool     `json:"ciparule,omitempty"`
 }
 
-//NameID is a helper for json entries with name and ID
+// NameID is a helper for json entries with name and ID
 type NameID struct {
 	ID   int    `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 	Uuid string `json:"uuid,omitempty"`
 }
 
-//AppGroup parses network application groups
+// AppGroup parses network application groups
 type AppGroup struct {
 	ID                  int      `json:"id"`
 	Name                string   `json:"name,omitempty"`
@@ -85,12 +85,12 @@ type AppGroup struct {
 	Description         string   `json:"description,omitempty"`
 }
 
-//GetID returns name, id
+// GetID returns name, id
 func (u AppGroup) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//UrlCat parses responses for urls categories
+// UrlCat parses responses for urls categories
 type UrlCat struct {
 	ID                              string   `json:"id"` // This goes from CUSTOM_00 to CUSTOM_256
 	ConfiguredName                  string   `json:"configuredName"`
@@ -139,7 +139,7 @@ type UrlCat struct {
 	IPRangesRetainingParentCategoryCount int `json:"ipRangesRetainingParentCategoryCount,omitempty"`
 }
 
-//GetID returns name, id
+// GetID returns name, id
 func (u UrlCat) GetID() (string, int) {
 	//If this is a custom category the name is configured name.
 	//Predefined categories have the name on ID
@@ -150,7 +150,7 @@ func (u UrlCat) GetID() (string, int) {
 	}
 }
 
-//FwRule parses firewall rules
+// FwRule parses firewall rules
 type FwRule struct {
 	ID                  int      `json:"id"`
 	Name                string   `json:"name"`
@@ -184,7 +184,7 @@ type FwRule struct {
 	Predefined          bool     `json:"predefined,omitempty"`
 }
 
-//IPDstGroup parses responses for IP destination groups
+// IPDstGroup parses responses for IP destination groups
 type IPDstGroup struct {
 	ID           int      `json:"id"`
 	Name         string   `json:"name"`
@@ -195,7 +195,7 @@ type IPDstGroup struct {
 	Countries    []string `json:"countries,omitempty"`
 }
 
-//IPSrcGroup parses responses for IP source groups
+// IPSrcGroup parses responses for IP source groups
 type IPSrcGroup struct {
 	ID          int      `json:"id"`
 	Name        string   `json:"name"`
@@ -203,13 +203,13 @@ type IPSrcGroup struct {
 	Description string   `json:"description,omitempty"`
 }
 
-//StartEnd json helper for ranges
+// StartEnd json helper for ranges
 type StartEnd struct {
 	Start *int `json:"start"`
 	End   *int `json:"end"`
 }
 
-//Service parses responses for network services
+// Service parses responses for network services
 type Service struct {
 	ID            int        `json:"id"`
 	Name          string     `json:"name"`
@@ -223,12 +223,12 @@ type Service struct {
 	IsNameL10NTag bool       `json:"isNameL10nTag,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u Service) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//ServiceGroup parses responses for network servicesgroups
+// ServiceGroup parses responses for network servicesgroups
 type ServiceGroup struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
@@ -236,7 +236,7 @@ type ServiceGroup struct {
 	Description string    `json:"description,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u ServiceGroup) GetID() (string, int) {
 	return u.Name, u.ID
 }
@@ -250,7 +250,7 @@ type VpnLocation struct {
 	Comments     string `json:"comments"`
 }
 
-//UserFilter filter user searches
+// UserFilter filter user searches
 // The name search parameter performs a partial match. The dept and group parameters perform a 'starts with' match.
 type UserFilter struct {
 	Name  string
@@ -258,7 +258,7 @@ type UserFilter struct {
 	Group string
 }
 
-//Location parses locations
+// Location parses locations
 type Location struct {
 	ID                                  int           `json:"id,omitempty"`
 	Name                                string        `json:"name"`
@@ -291,12 +291,12 @@ type Location struct {
 	Description                         string        `json:"description,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u Location) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//LocationGroup parses location groups
+// LocationGroup parses location groups
 type LocationGroup struct {
 	ID                           int    `json:"id"`
 	Name                         string `json:"name"`
@@ -328,12 +328,12 @@ type LocationGroup struct {
 	Predefined  bool     `json:"predefined"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u LocationGroup) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//Department parses user departments
+// Department parses user departments
 type Department struct {
 	ID       int    `json:"id,omitempty"`
 	Name     string `json:"name,omitempty"`
@@ -342,12 +342,12 @@ type Department struct {
 	Deleted  bool   `json:"deleted,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u Department) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//UserGroup parses UserGroup
+// UserGroup parses UserGroup
 type UserGroup struct {
 	ID       int    `json:"id,omitempty"`
 	Name     string `json:"name"`
@@ -355,12 +355,12 @@ type UserGroup struct {
 	Comments string `json:"comments,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u UserGroup) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//Users parses Users
+// Users parses Users
 type User struct {
 	ID            int         `json:"id,omitempty"`
 	Name          string      `json:"name"`
@@ -374,30 +374,31 @@ type User struct {
 	Type          string      `json:"type,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u User) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//BlockedUrls parses responses for blocked urls
+// BlockedUrls parses responses for blocked urls
 type BlockedUrls struct {
 	Urls []string `json:"blacklistUrls"`
 }
 
-//AllowedUrls parses responses for Allowed urls
+// AllowedUrls parses responses for Allowed urls
 type AllowedUrls struct {
 	Urls []string `json:"whitelistUrls"`
 }
 
-//UrlLookup parses responses for received url categories
+// UrlLookup parses responses for received url categories
 type UrlLookup struct {
-	URL       string   `json:"url"`
-	URLCat    []string `json:"urlClassifications"`
-	URLCatSec []string `json:"urlClassificationsWithSecurityAlert"`
-	Error     string   `json:"error,omitempty"`
+	URL         string   `json:"url"`
+	URLCat      []string `json:"urlClassifications"`
+	URLCatSec   []string `json:"urlClassificationsWithSecurityAlert"`
+	Error       string   `json:"error,omitempty"`
+	Application string   `json:"application"`
 }
 
-//DLPDictionary holds the DLP dictionaries from ZIA
+// DLPDictionary holds the DLP dictionaries from ZIA
 type DLPDictionary struct {
 	ID                      int          `json:"id,omitempty"`
 	Name                    string       `json:"name,omitempty"`
@@ -414,24 +415,24 @@ type DLPDictionary struct {
 	ProximityLengthEnabled  bool         `json:"proximityLengthEnabled,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u DLPDictionary) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//Phrases holds DLP dictionary phrases
+// Phrases holds DLP dictionary phrases
 type Phrase struct {
 	Action string `json:"action,omitempty"`
 	Phrase string `json:"phrase,omitempty"`
 }
 
-//Pattern holds DLP dictionary Patterns
+// Pattern holds DLP dictionary Patterns
 type Pattern struct {
 	Action  string `json:"action,omitempty"`
 	Pattern string `json:"pattern,omitempty"`
 }
 
-//EDMDetails holds EDM details from DLP dictionary
+// EDMDetails holds EDM details from DLP dictionary
 type EDMDetails struct {
 	DictionaryEdmMappingID int    `json:"dictionaryEdmMappingId,omitempty"`
 	SchemaID               int    `json:"schemaId,omitempty"`
@@ -440,7 +441,7 @@ type EDMDetails struct {
 	SecondaryFieldMatchOn  string `json:"secondaryFieldMatchOn,omitempty"`
 }
 
-//IDMProfile holds IDM details from DLP dictionary
+// IDMProfile holds IDM details from DLP dictionary
 type IDMProfile struct {
 	AdpIdmProfile struct {
 		ID         int `json:"id,omitempty"`
@@ -453,7 +454,7 @@ type IDMProfile struct {
 	MatchAccuracy string `json:"matchAccuracy,omitempty"`
 }
 
-//DLPEngine hols dlp engine details
+// DLPEngine hols dlp engine details
 type DLPEngine struct {
 	ID                   int    `json:"id,omitempty"`
 	Name                 string `json:"name,omitempty"`
@@ -463,7 +464,7 @@ type DLPEngine struct {
 	Description          string `json:"description,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u DLPEngine) GetID() (string, int) {
 	if !u.CustomDlpEngine {
 		return u.PredefinedEngineName, u.ID
@@ -472,7 +473,7 @@ func (u DLPEngine) GetID() (string, int) {
 	}
 }
 
-//DLPEngine hols dlp notification template details
+// DLPEngine hols dlp notification template details
 type DLPNotificationTemplate struct {
 	ID               int    `json:"id,omitempty"`
 	Name             string `json:"name,omitempty"`
@@ -482,12 +483,12 @@ type DLPNotificationTemplate struct {
 	HTMLMessage      string `json:"htmlMessage,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u DLPNotificationTemplate) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//ICAPServer holds an icap server detail
+// ICAPServer holds an icap server detail
 type ICAPServer struct {
 	ID     int    `json:"id,omitempty"`
 	Name   string `json:"name,omitempty"`
@@ -495,12 +496,12 @@ type ICAPServer struct {
 	Status string `json:"status,omitempty"`
 }
 
-//GetID return the name a string and the ID as int
+// GetID return the name a string and the ID as int
 func (u ICAPServer) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//DLPRule holds a DLP rule information
+// DLPRule holds a DLP rule information
 type DLPRule struct {
 	ID                       int      `json:"id,omitempty"`
 	Order                    int      `json:"order,omitempty"`
@@ -547,12 +548,12 @@ type Label struct {
 	ReferencedRuleCount int     `json:"referencedRuleCount,omitempty"`
 }
 
-//GetID returns the name as string and the ID as int
+// GetID returns the name as string and the ID as int
 func (u Label) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
-//Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
+// Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
 type Zurl interface {
 	GetUrls(string) []string
 	SetUrls(string, []string)
@@ -560,22 +561,22 @@ type Zurl interface {
 	GetName() string
 }
 
-//Zid is the interface for tyopes that can return ID, so most of them
+// Zid is the interface for tyopes that can return ID, so most of them
 type Zid interface {
 	GetID() (string, int)
 }
 
-//func (c BlockedUrls)  returns all the urls in a blocklist
+// func (c BlockedUrls)  returns all the urls in a blocklist
 func (c *BlockedUrls) GetUrls(f string) []string {
 	return c.Urls
 }
 
-//func (c Allowed)  returns all the urls in a allowlist
+// func (c Allowed)  returns all the urls in a allowlist
 func (c *AllowedUrls) GetUrls(f string) []string {
 	return c.Urls
 }
 
-//SetUrls sets all the urls in a allowlist
+// SetUrls sets all the urls in a allowlist
 func (c *UrlCat) GetUrls(f string) []string {
 	if f == "urlsRetainingParentCategory" {
 		return c.DbCategorizedUrls
@@ -584,17 +585,17 @@ func (c *UrlCat) GetUrls(f string) []string {
 	return c.Urls
 }
 
-//func (c BlockedUrls)  sets all the urls in a blocklist
+// func (c BlockedUrls)  sets all the urls in a blocklist
 func (c *BlockedUrls) SetUrls(f string, u []string) {
 	c.Urls = u
 }
 
-//SetUrls sets all the urls in a allowlist
+// SetUrls sets all the urls in a allowlist
 func (c *AllowedUrls) SetUrls(f string, u []string) {
 	c.Urls = u
 }
 
-//SetUrls sets all the urls in a allowlist
+// SetUrls sets all the urls in a allowlist
 func (c *UrlCat) SetUrls(f string, u []string) {
 	if f == "urls" {
 		c.Urls = u
@@ -603,44 +604,44 @@ func (c *UrlCat) SetUrls(f string, u []string) {
 	}
 }
 
-//func (c BlockedUrls) GetName()   returns all the urls in a blocklist
+// func (c BlockedUrls) GetName()   returns all the urls in a blocklist
 func (c *BlockedUrls) GetName() string {
 	return "Global Block List"
 }
 
-//func (c AllowedUrls) GetName()  returns all the urls in a allowlist
+// func (c AllowedUrls) GetName()  returns all the urls in a allowlist
 func (c *AllowedUrls) GetName() string {
 	return "Global Allow List"
 }
 
-//func (c UrlCat) GetName()  returns all the urls in a UrlCat
+// func (c UrlCat) GetName()  returns all the urls in a UrlCat
 func (c *UrlCat) GetName() string {
 	return c.ConfiguredName
 }
 
-//PushItems pushes all the urls in a blocklist
+// PushItems pushes all the urls in a blocklist
 func (c BlockedUrls) PushItems(client *Client) error {
 	return client.RepBlockedUrls(c)
 }
 
-//PushItems pushes all the urls in a allowlist
+// PushItems pushes all the urls in a allowlist
 func (c AllowedUrls) PushItems(client *Client) error {
 	return client.RepAllowedUrls(c)
 }
 
-//PushItems pushes all the urls in a allowlist
+// PushItems pushes all the urls in a allowlist
 func (c UrlCat) PushItems(client *Client) error {
 	return client.UpdateUrlCat(c)
 }
 
-//retry parses response for an HTTP 429 response to retry after X seconds.
+// retry parses response for an HTTP 429 response to retry after X seconds.
 type retry struct {
 	Message string `json:"message"`
 	Retry   string `json:"Retry-After"`
 }
 
-//NewClient returns a client with the auth cookie, default http timeouts and max retries per requests
-//cloud options: zscaler, zscalertwo, zscloud, etc.
+// NewClient returns a client with the auth cookie, default http timeouts and max retries per requests
+// cloud options: zscaler, zscalertwo, zscloud, etc.
 func NewClient(cloud string, admin string, pass string, apiKey string) (*Client, error) {
 	BaseURL := "https://zsapi." + cloud + ".net/api/v1"
 	cookie, err := KeyGen(BaseURL, admin, pass, apiKey)
@@ -666,8 +667,8 @@ func NewClient(cloud string, admin string, pass string, apiKey string) (*Client,
 	}, nil
 }
 
-//UrlLookup return the url categories for requested URLs.
-//up to 100 urls per request and 400 requests per hour according to zscaler limits
+// UrlLookup return the url categories for requested URLs.
+// up to 100 urls per request and 400 requests per hour according to zscaler limits
 func (c *Client) UrlLookup(urls []string) ([]UrlLookup, error) {
 	postBody, _ := json.Marshal(urls)
 	body, err := c.postRequest("/urlLookup", postBody)
@@ -682,7 +683,7 @@ func (c *Client) UrlLookup(urls []string) ([]UrlLookup, error) {
 	return res, nil
 }
 
-//GetUrlRules gets a list of URL filtering rules
+// GetUrlRules gets a list of URL filtering rules
 func (c *Client) GetUrlRules() ([]UrlRule, error) {
 	body, err := c.getRequest("/urlFilteringRules")
 	if err != nil {
@@ -696,7 +697,7 @@ func (c *Client) GetUrlRules() ([]UrlRule, error) {
 	return res, nil
 }
 
-//AddUrlRule adds a URL filtering rules
+// AddUrlRule adds a URL filtering rules
 func (c *Client) AddUrlRule(rule UrlRule) (int, error) {
 	//Seting rank to 7 if missing
 	if rule.Rank == 0 {
@@ -715,7 +716,7 @@ func (c *Client) AddUrlRule(rule UrlRule) (int, error) {
 	return res.ID, nil
 }
 
-//UpdateUrlRule updates the user info using the provided user object
+// UpdateUrlRule updates the user info using the provided user object
 func (c *Client) UpdateUrlRule(rule UrlRule) error {
 	path := "/urlFilteringRules/" + strconv.Itoa(rule.ID)
 	postBody, _ := json.Marshal(rule)
@@ -723,7 +724,12 @@ func (c *Client) UpdateUrlRule(rule UrlRule) error {
 	return err
 }
 
-//GetFwRules gets a list of firewall filtering rules
+// UpdateUrlRule updates the user info using the provided user object
+func (c *Client) DeleteUrlRule(id int) error {
+	return c.deleteRequest("/urlFilteringRules/" + strconv.Itoa(id))
+}
+
+// GetFwRules gets a list of firewall filtering rules
 func (c *Client) GetFwRules() ([]FwRule, error) {
 	body, err := c.getRequest("/firewallFilteringRules")
 	if err != nil {
@@ -737,7 +743,7 @@ func (c *Client) GetFwRules() ([]FwRule, error) {
 	return res, nil
 }
 
-//AddFwRule adds a firewall filtering rules
+// AddFwRule adds a firewall filtering rules
 func (c *Client) AddFwRule(rule FwRule) (int, error) {
 	postBody, _ := json.Marshal(rule)
 	body, err := c.postRequest("/firewallFilteringRules", postBody)
@@ -752,7 +758,26 @@ func (c *Client) AddFwRule(rule FwRule) (int, error) {
 	return res.ID, err
 }
 
-//GetIPDstGroups gets a list of firewall filtering rules
+// UpdateFwRule updates a firewall filtering rule
+func (c *Client) UpdateFwRule(obj FwRule) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/firewallFilteringRules/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteFwRule deletes a firewall filtering rule
+func (c *Client) DeleteFwRule(id int) error {
+	return c.deleteRequest("/firewallFilteringRules/" + strconv.Itoa(id))
+}
+
+// GetIPDstGroups gets a list of firewall filtering rules
 func (c *Client) GetIPDstGroups() ([]IPDstGroup, error) {
 	body, err := c.getRequest("/ipDestinationGroups")
 	if err != nil {
@@ -766,7 +791,7 @@ func (c *Client) GetIPDstGroups() ([]IPDstGroup, error) {
 	return res, nil
 }
 
-//AddIPDstGroups adds a firewall filtering rules
+// AddIPDstGroups adds a firewall filtering rules
 func (c *Client) AddIPDstGroup(obj IPDstGroup) (int, error) {
 	postBody, _ := json.Marshal(obj)
 	body, err := c.postRequest("/ipDestinationGroups", postBody)
@@ -781,7 +806,7 @@ func (c *Client) AddIPDstGroup(obj IPDstGroup) (int, error) {
 	return res.ID, err
 }
 
-//GetAppGroups gets a list of network application groups
+// GetAppGroups gets a list of network application groups
 func (c *Client) GetAppGroups() ([]AppGroup, error) {
 	body, err := c.getRequest("/networkApplicationGroups")
 	if err != nil {
@@ -795,7 +820,7 @@ func (c *Client) GetAppGroups() ([]AppGroup, error) {
 	return res, nil
 }
 
-//GetIPSrcGroups gets a list of firewall filtering rules
+// GetIPSrcGroups gets a list of firewall filtering rules
 func (c *Client) GetIPSrcGroups() ([]IPSrcGroup, error) {
 	body, err := c.getRequest("/ipSourceGroups")
 	if err != nil {
@@ -809,7 +834,7 @@ func (c *Client) GetIPSrcGroups() ([]IPSrcGroup, error) {
 	return res, nil
 }
 
-//AddIPSrcGroup adds a firewall filtering rules
+// AddIPSrcGroup adds a firewall filtering rules
 func (c *Client) AddIPSrcGroup(obj IPSrcGroup) (int, error) {
 	postBody, _ := json.Marshal(obj)
 	body, err := c.postRequest("/ipSourceGroups", postBody)
@@ -824,7 +849,7 @@ func (c *Client) AddIPSrcGroup(obj IPSrcGroup) (int, error) {
 	return res.ID, err
 }
 
-//GetServiceGroups gets a list of network service groups
+// GetServiceGroups gets a list of network service groups
 func (c *Client) GetServiceGroups() ([]ServiceGroup, error) {
 	body, err := c.getRequest("/networkServiceGroups")
 	if err != nil {
@@ -838,7 +863,7 @@ func (c *Client) GetServiceGroups() ([]ServiceGroup, error) {
 	return res, nil
 }
 
-//AddServiceGroup adds a  network service group
+// AddServiceGroup adds a  network service group
 func (c *Client) AddServiceGroup(obj ServiceGroup) (int, error) {
 	postBody, _ := json.Marshal(obj)
 	body, err := c.postRequest("/networkServiceGroups", postBody)
@@ -853,7 +878,7 @@ func (c *Client) AddServiceGroup(obj ServiceGroup) (int, error) {
 	return res.ID, err
 }
 
-//GetService gets a list of network service groups
+// GetService gets a list of network service groups
 func (c *Client) GetServices() ([]Service, error) {
 	body, err := c.getRequest("/networkServices")
 	if err != nil {
@@ -867,7 +892,7 @@ func (c *Client) GetServices() ([]Service, error) {
 	return res, nil
 }
 
-//GetService gets a list of network service groups
+// GetService gets a list of network service groups
 func (c *Client) GetAuditors() ([]User, error) {
 	body, err := c.getRequest("/users/auditors")
 	if err != nil {
@@ -881,7 +906,7 @@ func (c *Client) GetAuditors() ([]User, error) {
 	return res, nil
 }
 
-//AddService adds a  network service and returns the new service ID
+// AddService adds a  network service and returns the new service ID
 func (c *Client) AddService(obj Service) (int, error) {
 	postBody, _ := json.Marshal(obj)
 	body, err := c.postRequest("/networkServices", postBody)
@@ -896,17 +921,17 @@ func (c *Client) AddService(obj Service) (int, error) {
 	return res.ID, err
 }
 
-//GetLocations gets all locations
+// GetLocations gets all locations
 func (c *Client) GetLocations() ([]Location, error) {
 	return getPaged[Location](c, 1000, "/locations")
 }
 
-//GetLabels gets all labels
+// GetLabels gets all labels
 func (c *Client) GetLabels() ([]Label, error) {
 	return getPaged[Label](c, 1000, "/ruleLabels")
 }
 
-//AddLabel adds a  network service and returns the new service ID
+// AddLabel adds a  network service and returns the new service ID
 func (c *Client) AddLabel(obj Label) (int, error) {
 	res := Label{}
 	postBody, _ := json.Marshal(obj)
@@ -921,27 +946,27 @@ func (c *Client) AddLabel(obj Label) (int, error) {
 	return res.ID, err
 }
 
-//GetLocationGroups gets all location groups
+// GetLocationGroups gets all location groups
 func (c *Client) GetLocationGroups() ([]LocationGroup, error) {
 	return getPaged[LocationGroup](c, 1000, "/locations/groups")
 }
 
-//GetLocationGroups gets all departments
+// GetLocationGroups gets all departments
 func (c *Client) GetDeparments() ([]Department, error) {
 	return getPaged[Department](c, 1000, "/departments")
 }
 
-//GetGroups gets all user groups
+// GetGroups gets all user groups
 func (c *Client) GetGroups() ([]UserGroup, error) {
 	return getPaged[UserGroup](c, 1000, "/groups")
 }
 
-//GetUsers return all the ZIA users
+// GetUsers return all the ZIA users
 func (c *Client) GetUsers() ([]User, error) {
 	return getPaged[User](c, 1000, "/users")
 }
 
-//GetUsersFilter return all the ZIA users matching the filter
+// GetUsersFilter return all the ZIA users matching the filter
 func (c *Client) GetUsersFilter(filter UserFilter) ([]User, error) {
 	queries := url.Values{}
 	if filter.Dept != "" {
@@ -956,7 +981,7 @@ func (c *Client) GetUsersFilter(filter UserFilter) ([]User, error) {
 	return getPagedQuery[User](c, 1000, "/users", queries)
 }
 
-//GetUser return the ZIA user
+// GetUser return the ZIA user
 func (c *Client) GetUser(id int) (User, error) {
 	body, err := c.getRequest("/users/" + strconv.Itoa(id))
 	res := User{}
@@ -971,7 +996,7 @@ func (c *Client) GetUser(id int) (User, error) {
 	return res, nil
 }
 
-//GetUsersPaged allows you to request between 100 and 1000 items
+// GetUsersPaged allows you to request between 100 and 1000 items
 func (c *Client) GetUsersPaged(page int, pageSize int) ([]User, error) {
 	//Validating pagezise
 	if pageSize < 100 || pageSize > 1000 {
@@ -990,7 +1015,7 @@ func (c *Client) GetUsersPaged(page int, pageSize int) ([]User, error) {
 	return res, nil
 }
 
-//AddUser adds a new user and returns the new object ID
+// AddUser adds a new user and returns the new object ID
 func (c *Client) AddUser(user User) (int, error) {
 	res := User{}
 	postBody, _ := json.Marshal(user)
@@ -1005,7 +1030,7 @@ func (c *Client) AddUser(user User) (int, error) {
 	return res.ID, nil
 }
 
-//UpdateUser updates the user info using the provided user object
+// UpdateUser updates the user info using the provided user object
 func (c *Client) UpdateUser(user User) error {
 	path := "/users/" + strconv.Itoa(user.ID)
 	postBody, _ := json.Marshal(user)
@@ -1013,7 +1038,7 @@ func (c *Client) UpdateUser(user User) error {
 	return err
 }
 
-//GetSublocations gets a list of sublocations from the received location id
+// GetSublocations gets a list of sublocations from the received location id
 func (c *Client) GetSublocations(id int) ([]Location, error) {
 	path := "/locations/" + strconv.Itoa(id) + "/sublocations"
 	body, err := c.getRequest(path)
@@ -1028,7 +1053,7 @@ func (c *Client) GetSublocations(id int) ([]Location, error) {
 	return res, nil
 }
 
-//AddLocation adds a new location or sublocation and returns the new object ID
+// AddLocation adds a new location or sublocation and returns the new object ID
 func (c *Client) AddLocation(obj Location) (int, error) {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1046,7 +1071,7 @@ func (c *Client) AddLocation(obj Location) (int, error) {
 	return res.ID, err
 }
 
-//Edit updates a new location or sublocation and returns the new object ID
+// Edit updates a new location or sublocation and returns the new object ID
 func (c *Client) UpdateLocation(obj Location) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1060,7 +1085,7 @@ func (c *Client) UpdateLocation(obj Location) error {
 	return nil
 }
 
-//GetUrlCats gets a list of all URL filtering category
+// GetUrlCats gets a list of all URL filtering category
 func (c *Client) GetUrlCats() ([]UrlCat, error) {
 	res := []UrlCat{}
 	body, err := c.getRequest("/urlCategories")
@@ -1074,7 +1099,7 @@ func (c *Client) GetUrlCats() ([]UrlCat, error) {
 	return res, nil
 }
 
-//GetDLPDictionaries get all the DLP dictionaries
+// GetDLPDictionaries get all the DLP dictionaries
 func (c *Client) GetDLPDictionaries() ([]DLPDictionary, error) {
 	res := []DLPDictionary{}
 	body, err := c.getRequest("/dlpDictionaries")
@@ -1088,7 +1113,7 @@ func (c *Client) GetDLPDictionaries() ([]DLPDictionary, error) {
 	return res, nil
 }
 
-//AddDLPDictionary adds a DLP dictionary and returns the id if created or error
+// AddDLPDictionary adds a DLP dictionary and returns the id if created or error
 func (c *Client) AddDLPDictionary(obj DLPDictionary) (int, error) {
 	res := DLPDictionary{}
 	postBody, _ := json.Marshal(obj)
@@ -1103,16 +1128,7 @@ func (c *Client) AddDLPDictionary(obj DLPDictionary) (int, error) {
 	return res.ID, nil
 }
 
-//Activate activates all changes
-func (c *Client) Activate() error {
-	_, err := c.postRequest("/status/activate", nil)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//Edit updates a new location or sublocation and returns the new object ID
+// UpdateDLPDictionary updates a dlp dictionary
 func (c *Client) UpdateDLPDictionary(obj DLPDictionary) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1126,7 +1142,21 @@ func (c *Client) UpdateDLPDictionary(obj DLPDictionary) error {
 	return nil
 }
 
-//GetDLPEngines get all the DLP engines
+// DeleteDLPDictionary deletes a DLP dictionary
+func (c *Client) DeleteDLPDictionary(id int) error {
+	return c.deleteRequest("/dlpDictionaries/" + strconv.Itoa(id))
+}
+
+// Activate activates all changes
+func (c *Client) Activate() error {
+	_, err := c.postRequest("/status/activate", nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetDLPEngines get all the DLP engines
 func (c *Client) GetDLPEngines() ([]DLPEngine, error) {
 	res := []DLPEngine{}
 	body, err := c.getRequest("/dlpEngines")
@@ -1140,7 +1170,7 @@ func (c *Client) GetDLPEngines() ([]DLPEngine, error) {
 	return res, nil
 }
 
-//GetDLPNotificationTemplates get all the DLP notification templates
+// GetDLPNotificationTemplates get all the DLP notification templates
 func (c *Client) GetDLPNotificationTemplates() ([]DLPNotificationTemplate, error) {
 	res := []DLPNotificationTemplate{}
 	body, err := c.getRequest("/dlpNotificationTemplates")
@@ -1154,7 +1184,7 @@ func (c *Client) GetDLPNotificationTemplates() ([]DLPNotificationTemplate, error
 	return res, nil
 }
 
-//AddDLPNotificationTemplates adds a DLP notification template
+// AddDLPNotificationTemplates adds a DLP notification template
 func (c *Client) AddDLPNotificationTemplate(entry DLPNotificationTemplate) (int, error) {
 	res := DLPNotificationTemplate{}
 	postBody, _ := json.Marshal(entry)
@@ -1169,7 +1199,7 @@ func (c *Client) AddDLPNotificationTemplate(entry DLPNotificationTemplate) (int,
 	return res.ID, nil
 }
 
-//GetDLPEngines get all the DLP engines
+// GetDLPEngines get all the DLP engines
 func (c *Client) GetICAPServers() ([]ICAPServer, error) {
 	res := []ICAPServer{}
 	body, err := c.getRequest("/icapServers")
@@ -1183,7 +1213,7 @@ func (c *Client) GetICAPServers() ([]ICAPServer, error) {
 	return res, nil
 }
 
-//GetDLPEngines get all the DLP engines
+// GetDLPEngines get all the DLP engines
 func (c *Client) GetDLPRules() ([]DLPRule, error) {
 	res := []DLPRule{}
 	body, err := c.getRequest("/webDlpRules")
@@ -1197,7 +1227,7 @@ func (c *Client) GetDLPRules() ([]DLPRule, error) {
 	return res, nil
 }
 
-//AddDLPRule adds a URL filtering category
+// AddDLPRule adds a URL filtering category
 func (c *Client) AddDLPRule(item DLPRule) (int, error) {
 	res := DLPRule{}
 	postBody, _ := json.Marshal(item)
@@ -1212,7 +1242,26 @@ func (c *Client) AddDLPRule(item DLPRule) (int, error) {
 	return res.ID, nil
 }
 
-//AddUrlCat adds a URL filtering category
+// UpdateDLPRule  updates a dlp rule
+func (c *Client) UpdateDLPRule(obj DLPRule) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/webDlpRules/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteDLPRule deleteds the dlp rules
+func (c *Client) DeleteDLPRule(id int) error {
+	return c.deleteRequest("/webDlpRules/" + strconv.Itoa(id))
+}
+
+// AddUrlCat adds a URL filtering category
 func (c *Client) AddUrlCat(category UrlCat) (string, error) {
 	res := UrlCat{}
 	postBody, _ := json.Marshal(category)
@@ -1227,7 +1276,7 @@ func (c *Client) AddUrlCat(category UrlCat) (string, error) {
 	return res.ID, nil
 }
 
-//UpdateUrlCat updates a URL filtering category
+// UpdateUrlCat updates a URL filtering category
 func (c *Client) UpdateUrlCat(category UrlCat) error {
 	//Validating at least 1 urls is in the entries
 	if category.Urls == nil {
@@ -1239,7 +1288,12 @@ func (c *Client) UpdateUrlCat(category UrlCat) error {
 	return err
 }
 
-//GetBlockedUrls gets a list of blocked URLs in Advanced Threat policy
+// DeleteUrlCat deleteds the UrlCat
+func (c *Client) DeleteUrlCat(id string) error {
+	return c.deleteRequest("/urlCategories/" + id)
+}
+
+// GetBlockedUrls gets a list of blocked URLs in Advanced Threat policy
 func (c *Client) GetBlockedUrls() (BlockedUrls, error) {
 	body, err := c.getRequest("/security/advanced")
 	if err != nil {
@@ -1253,7 +1307,7 @@ func (c *Client) GetBlockedUrls() (BlockedUrls, error) {
 	return res, nil
 }
 
-//RepBlockedUrls replaces current existing blocked list
+// RepBlockedUrls replaces current existing blocked list
 func (c *Client) RepBlockedUrls(urls BlockedUrls) error {
 	postBody, err := json.Marshal(urls)
 	if err != nil {
@@ -1262,7 +1316,7 @@ func (c *Client) RepBlockedUrls(urls BlockedUrls) error {
 	return c.putRequest("/security/advanced", postBody)
 }
 
-//GetAllowedUrls gets a list of blocked URLs in Advanced Threat policy
+// GetAllowedUrls gets a list of blocked URLs in Advanced Threat policy
 func (c *Client) GetAllowedUrls() (AllowedUrls, error) {
 	body, err := c.getRequest("/security")
 	if err != nil {
@@ -1276,7 +1330,7 @@ func (c *Client) GetAllowedUrls() (AllowedUrls, error) {
 	return res, nil
 }
 
-//RepAllowedUrls replaces current existing allowed list
+// RepAllowedUrls replaces current existing allowed list
 func (c *Client) RepAllowedUrls(urls AllowedUrls) error {
 	postBody, err := json.Marshal(urls)
 	if err != nil {
@@ -1285,13 +1339,13 @@ func (c *Client) RepAllowedUrls(urls AllowedUrls) error {
 	return c.putRequest("/security", postBody)
 }
 
-//GetPaged is a generic function that iterates through multiple pageds and returns the joined parsed object
+// GetPaged is a generic function that iterates through multiple pageds and returns the joined parsed object
 func getPaged[K any](c *Client, pageSize int, path string) ([]K, error) {
 	return getPagedQuery[K](c, pageSize, path, url.Values{})
 }
 
-//getPagedQuery is a generic function that iterates through multiple pageds and returns the joined parsed object
-//It received query parameters in case we want to add more than pageSize
+// getPagedQuery is a generic function that iterates through multiple pageds and returns the joined parsed object
+// It received query parameters in case we want to add more than pageSize
 func getPagedQuery[K any](c *Client, pageSize int, path string, queries url.Values) ([]K, error) {
 	var ret []K
 	//Setting the 1st page number
@@ -1336,7 +1390,7 @@ func getPagedQuery[K any](c *Client, pageSize int, path string, queries url.Valu
 	return ret, nil
 }
 
-//GetIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
+// GetIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
 func GetIDs[K Zid](obj []K) map[string]int {
 	//Creating map
 	m := make(map[string]int)
@@ -1348,7 +1402,7 @@ func GetIDs[K Zid](obj []K) map[string]int {
 	return m
 }
 
-//postRequest Process and sends HTTP POST requests
+// postRequest Process and sends HTTP POST requests
 func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 	data := bytes.NewBuffer(payload)
 	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, data)
@@ -1358,7 +1412,7 @@ func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 	return c.do(req)
 }
 
-//getRequest Process and sends HTTP GET requests
+// getRequest Process and sends HTTP GET requests
 func (c *Client) getRequest(path string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
@@ -1367,7 +1421,7 @@ func (c *Client) getRequest(path string) ([]byte, error) {
 	return c.do(req)
 }
 
-//Process and sends HTTP PUT requests
+// Process and sends HTTP PUT requests
 func (c *Client) putRequest(path string, payload []byte) error {
 	data := bytes.NewBuffer(payload)
 	req, err := http.NewRequest(http.MethodPut, c.BaseURL+path, data)
@@ -1378,13 +1432,13 @@ func (c *Client) putRequest(path string, payload []byte) error {
 	return err
 }
 
-//do Function de send the HTTP request and return the response and error
+// do Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
 	return c.doWithOptions(req, retryMax)
 }
 
-//doWithOptions Wrapper that receives options and sends an http request
+// doWithOptions Wrapper that receives options and sends an http request
 func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) {
 	//Extracting body payload
 	req, payload := getReqBody(req)
@@ -1428,7 +1482,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	return ioutil.ReadAll(resp.Body)
 }
 
-//retryAfter will return the number of seconds an API request needs to wait before trying again
+// retryAfter will return the number of seconds an API request needs to wait before trying again
 func retryAfter(resp *http.Response) (int64, error) {
 	body, _ := ioutil.ReadAll(resp.Body)
 	ret := retry{}
@@ -1455,8 +1509,8 @@ func getReqBody(req *http.Request) (*http.Request, []byte) {
 	}
 }
 
-//httpStatusCheck receives an http response and returns an error based on zscaler documentation.
-//From https://help.zscaler.com/zia/about-error-handling
+// httpStatusCheck receives an http response and returns an error based on zscaler documentation.
+// From https://help.zscaler.com/zia/about-error-handling
 func httpStatusCheck(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		return nil
@@ -1482,7 +1536,7 @@ func httpStatusCheck(resp *http.Response) error {
 	}
 }
 
-//KeyGen function gets the authentication parameter and returns the JSESSIONID which is the cookie that authenticates the requests
+// KeyGen function gets the authentication parameter and returns the JSESSIONID which is the cookie that authenticates the requests
 func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.Cookie, error) {
 	t := strconv.FormatInt(time.Now().UnixMilli(), 10)
 	key, err := obfuscateApiKey(apiKey, t)
@@ -1520,7 +1574,7 @@ func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.C
 	return nil, &ZIAError{Err: "can't authenticate please check credentials,base url or apikey"}
 }
 
-//obfuscateApiKey ofuscates the API key based on Zscaler documentation
+// obfuscateApiKey ofuscates the API key based on Zscaler documentation
 func obfuscateApiKey(api string, t string) (string, error) {
 	if len(t) < 6 {
 		return "", &ZIAError{Err: "time lenght for ofuscation is less than 6 digits, please check your system's clock"}
@@ -1555,7 +1609,17 @@ func obfuscateApiKey(api string, t string) (string, error) {
 	return key, nil
 }
 
-//SetRetryMax adds a URL filtering rules
+// SetRetryMax adds a URL filtering rules
 func (c *Client) SetRetryMax(r int) {
 	c.RetryMax = r
+}
+
+// Process and sends HTTP Delete requests
+func (c *Client) deleteRequest(path string) error {
+	req, err := http.NewRequest(http.MethodDelete, c.BaseURL+path, nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(req)
+	return err
 }
