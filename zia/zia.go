@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -473,7 +474,26 @@ func (u DLPEngine) GetID() (string, int) {
 	}
 }
 
-// DLPEngine hols dlp notification template details
+// GetDictionaries returns dictionary IDs used on an engine
+func (u DLPEngine) GetDictionaries() []int {
+	var m = make(map[int]bool)
+	var a = []int{}
+	//Getting engine IDS
+	re := regexp.MustCompile(`D[0-9]+\.S`)
+	entries := re.FindAllString(u.EngineExpression, -1)
+	for _, entry := range entries {
+		val := entry[1 : len(entry)-2]
+		i, _ := strconv.Atoi(val) // Excluding error, this should be mostly safe since ids should always be a number
+		_, ok := m[i]
+		if !ok { //if value doesn't exist add it
+			m[i] = true
+			a = append(a, i)
+		}
+	}
+	return a
+}
+
+// DLPNotificationTemplate hols dlp notification template details
 type DLPNotificationTemplate struct {
 	ID               int    `json:"id,omitempty"`
 	Name             string `json:"name,omitempty"`
@@ -1168,6 +1188,37 @@ func (c *Client) GetDLPEngines() ([]DLPEngine, error) {
 		return res, err
 	}
 	return res, nil
+}
+
+// AddDLPEngine adds a DLP engine and returns the id if created or error
+// An additional provisioning ticket needs to be requested for this to work
+func (c *Client) AddDLPEngine(obj DLPEngine) (int, error) {
+	res := DLPEngine{}
+	postBody, _ := json.Marshal(obj)
+	body, err := c.postRequest("/dlpEngines", postBody)
+	if err != nil {
+		return 0, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, nil
+}
+
+// UpdateDLPEngine updates a dlp engine
+// An additional provisioning ticket needs to be requested for this to work
+func (c *Client) UpdateDLPEngine(obj DLPEngine) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/dlpEngines/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetDLPNotificationTemplates get all the DLP notification templates
