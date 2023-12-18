@@ -10,14 +10,17 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/slog"
 )
 
-//Client contains the base url, http client and max number of retries per request.
-//It also includes ZPA info like customerID
-//And policy IDs for
+// Client contains the base url, http client and max number of retries per request.
+// It also includes ZPA info like customerID
+// And policy IDs for
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
@@ -30,9 +33,10 @@ type Client struct {
 	BypassID   string //ID for Bypass ID policy
 	Policy     string //Options are : access,reauth,siem,bypass
 	//Policy type so we can detect which kind of policy you want to interact with.
+	Logger *slog.Logger
 }
 
-//myToken parses the auth response
+// myToken parses the auth response
 type myToken struct {
 	TType   string `json:"token_type"`
 	Expires string `json:"expires_in"`
@@ -43,13 +47,13 @@ type myToken struct {
 //API structs////
 /////////////////
 
-//PortRange helps build port ranges on an app segment
+// PortRange helps build port ranges on an app segment
 type PortRange struct {
 	From string `json:"from"`
 	To   string `json:"to"`
 }
 
-//ClientLessApps helps build app segment
+// ClientLessApps helps build app segment
 type ClientLessApps struct {
 	AllowOptions        bool   `json:"allowOptions"`
 	AppID               string `json:"appId"`
@@ -70,7 +74,7 @@ type ClientLessApps struct {
 	TrustUntrustedCert  bool   `json:"trustUntrustedCert"`
 }
 
-//InspectionApps helps build app segment
+// InspectionApps helps build app segment
 type InspectionApps struct {
 	AppID               string `json:"appId"`
 	ApplicationPort     string `json:"applicationPort"`
@@ -84,43 +88,46 @@ type InspectionApps struct {
 	Name                string `json:"name"`
 }
 
-//AppsConfig helps build app segment
+// AppsConfig helps build app segment
 type AppsConfig struct {
-	AllowOptions        bool     `json:"allowOptions"`
-	AppID               string   `json:"appId"`
-	AppTypes            []string `json:"appTypes"`
-	ApplicationPort     string   `json:"applicationPort"`
-	ApplicationProtocol string   `json:"applicationProtocol"`
-	BaAppID             string   `json:"baAppId"`
-	CertificateID       string   `json:"certificateId"`
-	CertificateName     string   `json:"certificateName"`
-	Cname               string   `json:"cname"`
-	Description         string   `json:"description"`
-	Domain              string   `json:"domain"`
-	Enabled             bool     `json:"enabled"`
-	Hidden              bool     `json:"hidden"`
-	InspectAppID        string   `json:"inspectAppId"`
-	LocalDomain         string   `json:"localDomain"`
-	Name                string   `json:"name"`
-	Path                string   `json:"path"`
-	Portal              bool     `json:"portal"`
-	TrustUntrustedCert  bool     `json:"trustUntrustedCert"`
+	AdpEnabled          bool     `json:"adpEnabled,omitempty"`
+	AllowOptions        bool     `json:"allowOptions,omitempty"`
+	AppID               string   `json:"appId,omitempty"`
+	AppTypes            []string `json:"appTypes,omitempty"`
+	ApplicationPort     string   `json:"applicationPort,omitempty"`
+	ApplicationProtocol string   `json:"applicationProtocol,omitempty"`
+	BaAppID             string   `json:"baAppId,omitempty"`
+	CertificateID       string   `json:"certificateId,omitempty"`
+	CertificateName     string   `json:"certificateName,omitempty"`
+	Cname               string   `json:"cname,omitempty"`
+	ConnectionSecurity  string   `json:"connectionSecurity,omitempty"`
+	Description         string   `json:"description,omitempty"`
+	Domain              string   `json:"domain,omitempty"`
+	Enabled             bool     `json:"enabled,omitempty"`
+	Hidden              bool     `json:"hidden,omitempty"`
+	InspectAppID        string   `json:"inspectAppId,omitempty"`
+	LocalDomain         string   `json:"localDomain,omitempty"`
+	Name                string   `json:"name,omitempty"`
+	Path                string   `json:"path,omitempty"`
+	Portal              bool     `json:"portal,omitempty"`
+	SraAppID            string   `json:"sraAppId,omitempty"`
+	TrustUntrustedCert  bool     `json:"trustUntrustedCert,omitempty"`
 }
 
-//CommonAppsDto helps build app segment
+// CommonAppsDto helps build app segment
 type CommonAppsDto struct {
-	AppsConfig         []AppsConfig `json:"appsConfig"`
-	DeletedBaApps      []string     `json:"deletedBaApps"`
-	DeletedInspectApps []string     `json:"deletedInspectApps"`
+	AppsConfig         []AppsConfig `json:"appsConfig,omitempty"`
+	DeletedBaApps      []string     `json:"deletedBaApps,omitempty"`
+	DeletedInspectApps []string     `json:"deletedInspectApps,omitempty"`
 }
 
-//AppSegment holds the app segment
+// AppSegment holds the app segment
 type AppSegment struct {
 	SegmentGroupID     string           `json:"segmentGroupId,omitempty"`
 	SegmentGroupName   string           `json:"segmentGroupName,omitempty"`
 	BypassType         string           `json:"bypassType"`
 	ClientlessApps     []ClientLessApps `json:"clientlessApps,omitempty"`
-	CommonAppsDto      []CommonAppsDto  `json:"commonAppsDto,omitempty"`
+	CommonAppsDto      CommonAppsDto    `json:"commonAppsDto,omitempty"`
 	ConfigSpace        string           `json:"configSpace,omitempty"`
 	CreationTime       string           `json:"creationTime,omitempty"`
 	DefaultIdleTimeout string           `json:"defaultIdleTimeout,omitempty"`
@@ -146,19 +153,38 @@ type AppSegment struct {
 	TCPPortRanges        []string         `json:"tcpPortRanges,omitempty"`
 	UDPPortRange         []PortRange      `json:"udpPortRange,omitempty"`
 	UDPPortRanges        []string         `json:"udpPortRanges,omitempty"`
+	SRAAppsDto           []SRAAppsDto     `json:"sraApps,omitempty"`
 }
 
-//GetID returns: name , objectID
+type SRAAppsDto struct {
+	ID                  string `json:"id,omitempty"`
+	Name                string `json:"name,omitempty"`
+	AppID               string `json:"appId,omitempty"`
+	ApplicationPort     string `json:"applicationPort,omitempty"`
+	ApplicationProtocol string `json:"applicationProtocol,omitempty"`
+	CertificateID       string `json:"certificateId,omitempty"`
+	CertificateName     string `json:"certificateName,omitempty"`
+	ConnectionSecurity  string `json:"connectionSecurity,omitempty"`
+	Hidden              bool   `json:"hidden"`
+	Portal              bool   `json:"portal"`
+	Description         string `json:"description,omitempty"`
+	Domain              string `json:"domain,omitempty"`
+	Enabled             bool   `json:"enabled"`
+	MicroTenantID       string `json:"microtenantId,omitempty"`
+	MicroTenantName     string `json:"microtenantName,omitempty"`
+}
+
+// GetID returns: name , objectID
 func (obj AppSegment) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//Create creates the object on the ZPA tenant registered with the client
+// Create creates the object on the ZPA tenant registered with the client
 func (obj AppSegment) Create(c *Client) (string, error) {
 	return c.AddAppSegment(obj)
 }
 
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
+// ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *AppSegment) ResetID(m map[string]string) bool {
 	notFound := false
 	//Reset own ID
@@ -193,14 +219,14 @@ func (obj *AppSegment) ResetID(m map[string]string) bool {
 		obj.ClientlessApps = clapps
 	}
 	//Checking Commonappsto and inspection apps will be reset until we can find what they do
-	var capps []CommonAppsDto
+	var capps CommonAppsDto
 	var iapps []InspectionApps
 	obj.CommonAppsDto = capps
 	obj.InspectionApps = iapps
 	return notFound
 }
 
-//SegmentGroup parses segment groups
+// SegmentGroup parses segment groups
 type SegmentGroup struct {
 	Applications        []AppSegment `json:"applications,omitempty"`
 	ConfigSpace         string       `json:"configSpace,omitempty"`
@@ -215,17 +241,17 @@ type SegmentGroup struct {
 	TCPKeepAliveEnabled string       `json:"tcpKeepAliveEnabled,omitempty"`
 }
 
-//GetID return the object name, ID
+// GetID return the object name, ID
 func (obj SegmentGroup) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//Create creates the object on the ZPA tenant registered with the client
+// Create creates the object on the ZPA tenant registered with the client
 func (obj SegmentGroup) Create(c *Client) (string, error) {
 	return c.AddSegmentGroup(obj)
 }
 
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
+// ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *SegmentGroup) ResetID(m map[string]string) bool {
 	notFound := false
 	//Reset own ID
@@ -247,7 +273,7 @@ func (obj *SegmentGroup) ResetID(m map[string]string) bool {
 	return notFound
 }
 
-//Servers parses zpa servers
+// Servers parses zpa servers
 type Server struct {
 	Address           string   `json:"address"`
 	AppServerGroupIds []string `json:"appServerGroupIds"`
@@ -261,17 +287,17 @@ type Server struct {
 	Name              string   `json:"name"`
 }
 
-//GetID return the object name, ID
+// GetID return the object name, ID
 func (obj Server) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//Create creates the object on the ZPA tenant registered with the client
+// Create creates the object on the ZPA tenant registered with the client
 func (obj Server) Create(c *Client) (string, error) {
 	return c.AddServer(obj)
 }
 
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
+// ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *Server) ResetID(m map[string]string) bool {
 	notFound := false
 	//Reset own ID
@@ -292,7 +318,7 @@ func (obj *Server) ResetID(m map[string]string) bool {
 	return notFound
 }
 
-//ServerGroup parses zpa servers
+// ServerGroup parses zpa servers
 type ServerGroup struct {
 	Applications       []NameID            `json:"applications,omitempty"`
 	AppConnectorGroups []AppConnectorGroup `json:"appConnectorGroups,omitempty"`
@@ -309,17 +335,17 @@ type ServerGroup struct {
 	Servers            []Server            `json:"servers,omitempty"`
 }
 
-//GetID return the object name,ID
+// GetID return the object name,ID
 func (obj ServerGroup) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//Create creates the object on the ZPA tenant registered with the client
+// Create creates the object on the ZPA tenant registered with the client
 func (obj ServerGroup) Create(c *Client) (string, error) {
 	return c.AddServerGroup(obj)
 }
 
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
+// ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *ServerGroup) ResetID(m map[string]string) bool {
 	notFound := false
 	//Reset own ID
@@ -358,7 +384,7 @@ func (obj *ServerGroup) ResetID(m map[string]string) bool {
 	return notFound
 }
 
-//AppConnector parses app connectors
+// AppConnector parses app connectors
 type AppConnector struct {
 	ApplicationStartTime             string   `json:"applicationStartTime"`
 	AppConnectorGroupID              string   `json:"appConnectorGroupId"`
@@ -402,12 +428,12 @@ type AppConnector struct {
 	UpgradeStatus  string `json:"upgradeStatus"`
 }
 
-//GetID return the object name, ID
+// GetID return the object name, ID
 func (obj AppConnector) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//AppConnectorGroup hold app connector groups from zpa
+// AppConnectorGroup hold app connector groups from zpa
 type AppConnectorGroup struct {
 	Connectors                    []AppConnector `json:"connectors,omitempty"`
 	CityCountry                   string         `json:"cityCountry,omitempty"`
@@ -435,17 +461,17 @@ type AppConnectorGroup struct {
 	VersionProfileVisibilityScope string         `json:"versionProfileVisibilityScope,omitempty"`
 }
 
-//GetID return the object name,ID
+// GetID return the object name,ID
 func (obj AppConnectorGroup) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//Create creates the object on the ZPA tenant registered with the client
+// Create creates the object on the ZPA tenant registered with the client
 func (obj AppConnectorGroup) Create(c *Client) (string, error) {
 	return c.AddAppConnectorGroup(obj)
 }
 
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
+// ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *AppConnectorGroup) ResetID(m map[string]string) bool {
 	notFound := false
 	//Reset own ID
@@ -498,8 +524,8 @@ func (obj *AppConnectorGroup) ResetID(m map[string]string) bool {
 	return notFound
 }
 
-//PolicyConditions holds conditions for zpa policies
-//check https://help.zscaler.com/zpa/access-policy-use-cases for valid options
+// PolicyConditions holds conditions for zpa policies
+// check https://help.zscaler.com/zpa/access-policy-use-cases for valid options
 type PolicyConditions struct {
 	CreationTime string           `json:"creationTime,omitempty"`
 	ID           string           `json:"id,omitempty"`
@@ -510,8 +536,8 @@ type PolicyConditions struct {
 	Operator     string           `json:"operator"` //Options: OR, AND
 }
 
-//PolicyConditions holds PolicyOperands for PolicyConditions used in zpa policies
-//check https://help.zscaler.com/zpa/access-policy-use-cases for valid options
+// PolicyConditions holds PolicyOperands for PolicyConditions used in zpa policies
+// check https://help.zscaler.com/zpa/access-policy-use-cases for valid options
 type PolicyOperands struct {
 	CreationTime string `json:"creationTime,omitempty"`
 	ID           string `json:"id,omitempty"`
@@ -524,7 +550,7 @@ type PolicyOperands struct {
 	RHS          string `json:"rhs,omitempty"`
 }
 
-//Policy parses policies from ZPA
+// Policy parses policies from ZPA
 type Policy struct {
 	Action                   string              `json:"action"` //Supported values: ALLOW (default value) or DENY
 	ActionID                 string              `json:"actionId,omitempty"`
@@ -555,12 +581,12 @@ type Policy struct {
 	ZpnInspectionProfileName string              `json:"zpnInspectionProfileName,omitempty"`
 }
 
-//Create creates the object on the ZPA tenant registered with the client
+// Create creates the object on the ZPA tenant registered with the client
 func (obj Policy) Create(c *Client) (string, error) {
 	return c.AddPolicy(obj)
 }
 
-//ResetID Only add objects if references to them exist on the map map[OldID]newID
+// ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *Policy) ResetID(m map[string]string) bool {
 	notFound := false
 	//Reset own ID
@@ -653,30 +679,30 @@ func (obj *Policy) ResetID(m map[string]string) bool {
 	return notFound
 }
 
-//GetID return the object name, ID
+// GetID return the object name, ID
 func (obj Policy) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//PagedResponse parses http response from a paged GET request. List will be parsed later to the right object
+// PagedResponse parses http response from a paged GET request. List will be parsed later to the right object
 type PagedResponse struct {
 	Pages string          `json:"totalPages"`
 	List  json.RawMessage `json:"list"`
 }
 
-//Creating object interface for ZPA objects that can be created with a Post request
+// Creating object interface for ZPA objects that can be created with a Post request
 type ObjectCreate interface {
 	GetID() (string, string)
 	Create(*Client) (string, error)
 }
 
-//Resettable Pointer allows to modify object and delete invalid references to non existing object IDs
+// Resettable Pointer allows to modify object and delete invalid references to non existing object IDs
 type Resettable[B any] interface {
 	*B                              // non-interface type constraint element
 	ResetID(map[string]string) bool // Resets IDs inside element bases on old, new map ID and returns true if it's own ID was modified
 }
 
-//IDP holds the idp information
+// IDP holds the idp information
 type IDP struct {
 	AdminMetadata struct {
 		CertificateURL string `json:"certificateUrl,omitempty"`
@@ -725,7 +751,7 @@ type IDP struct {
 	UserSpSigningCertID int `json:"userSpSigningCertId,omitempty"`
 }
 
-//SCIMAttr holds the IDP scim attributes
+// SCIMAttr holds the IDP scim attributes
 type SCIMAttr struct {
 	CanonicalValues []string `json:"canonicalValues"`
 	CaseSensitive   bool     `json:"caseSensitive,omitempty"`
@@ -745,7 +771,7 @@ type SCIMAttr struct {
 	Uniqueness      bool     `json:"uniqueness,omitempty"`
 }
 
-//SCIMGroup holds the IDP scim groups
+// SCIMGroup holds the IDP scim groups
 type SCIMGroup struct {
 	CreationTime int    `json:"creationTime,omitempty"`
 	ID           int    `json:"id,omitempty"`
@@ -755,7 +781,7 @@ type SCIMGroup struct {
 	Name         string `json:"name,omitempty"`
 }
 
-//PostureProfile holds the configured posture profiles
+// PostureProfile holds the configured posture profiles
 type PostureProfile struct {
 	CreationTime      int    `json:"creationTime,omitempty"`
 	Domain            string `json:"domain,omitempty"`
@@ -781,19 +807,19 @@ type VersionProfile struct {
 	CustomerID      string `json:"customerId,omitempty"`
 }
 
-//GetID return the object name, ID
+// GetID return the object name, ID
 func (obj VersionProfile) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
-//Create doesn't exist with version profile
+// Create doesn't exist with version profile
 func (obj VersionProfile) Create(c *Client) (string, error) {
 	return "", nil
 }
 
 //Struct helpers
 
-//NamedID helps json structs with name and id
+// NamedID helps json structs with name and id
 type NameID struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -803,19 +829,19 @@ type NameID struct {
 //Section for API calls
 ////////////////////////
 
-//GetAppSegments gets a list of app segments
+// GetAppSegments gets a list of app segments
 func (c *Client) GetAppSegments() ([]AppSegment, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
 	return GetPaged(c, 500, path, []AppSegment{})
 }
 
-//GetAppSegments gets a list of app segments
+// GetAppSegments gets a list of app segments
 func (c *Client) GetVersionProfiles() ([]VersionProfile, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/visible/versionProfiles"
 	return GetPaged(c, 500, path, []VersionProfile{})
 }
 
-//AddAppSegment adds an app segments
+// AddAppSegment adds an app segments
 func (c *Client) AddAppSegment(obj AppSegment) (string, error) {
 	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
@@ -823,25 +849,25 @@ func (c *Client) AddAppSegment(obj AppSegment) (string, error) {
 	return tmp.ID, err
 }
 
-//EditAppSegment edits the provided app segment
+// EditAppSegment edits the provided app segment
 func (c *Client) EditAppSegment(obj AppSegment) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
 	return PutObj(c, path, obj, obj.ID)
 }
 
-//DeleteAppSegment edits the provided app segment
+// DeleteAppSegment deletes the provided app segment
 func (c *Client) DeleteAppSegment(id string) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/application"
 	return DelObj(c, path, id)
 }
 
-//GetSegmentGroups gets a list of segment groups
+// GetSegmentGroups gets a list of segment groups
 func (c *Client) GetSegmentGroups() ([]SegmentGroup, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
 	return GetPaged(c, 500, path, []SegmentGroup{})
 }
 
-//AddSegmentGroup adds an app segments
+// AddSegmentGroup adds an app segments
 func (c *Client) AddSegmentGroup(obj SegmentGroup) (string, error) {
 	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
@@ -849,25 +875,25 @@ func (c *Client) AddSegmentGroup(obj SegmentGroup) (string, error) {
 	return tmp.ID, err
 }
 
-//EditSegmentGroup edits the provided app segment
+// EditSegmentGroup edits the provided app segment
 func (c *Client) EditSegmentGroup(obj SegmentGroup) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
 	return PutObj(c, path, obj, obj.ID)
 }
 
-//DeleteSegmentGroup edits the provided app segment
+// DeleteSegmentGroup edits the provided app segment
 func (c *Client) DeleteSegmentGroup(id string) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/segmentGroup"
 	return DelObj(c, path, id)
 }
 
-//GetServers gets a list of servers
+// GetServers gets a list of servers
 func (c *Client) GetServers() ([]Server, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
 	return GetPaged(c, 500, path, []Server{})
 }
 
-//AddServer adds a server
+// AddServer adds a server
 func (c *Client) AddServer(obj Server) (string, error) {
 	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
@@ -875,25 +901,25 @@ func (c *Client) AddServer(obj Server) (string, error) {
 	return tmp.ID, err
 }
 
-//EditServer edits the provided server
+// EditServer edits the provided server
 func (c *Client) EditServer(obj Server) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
 	return PutObj(c, path, obj, obj.ID)
 }
 
-//DeleteServer edits the provided server
+// DeleteServer edits the provided server
 func (c *Client) DeleteServer(id string) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/server"
 	return DelObj(c, path, id)
 }
 
-//GetServers gets a list of servers
+// GetServers gets a list of servers
 func (c *Client) GetServerGroups() ([]ServerGroup, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
 	return GetPaged(c, 500, path, []ServerGroup{})
 }
 
-//AddServer adds a server
+// AddServer adds a server
 func (c *Client) AddServerGroup(obj ServerGroup) (string, error) {
 	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
@@ -901,43 +927,43 @@ func (c *Client) AddServerGroup(obj ServerGroup) (string, error) {
 	return tmp.ID, err
 }
 
-//EditServer edits the provided server
+// EditServer edits the provided server
 func (c *Client) EditServerGroup(obj ServerGroup) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
 	return PutObj(c, path, obj, obj.ID)
 }
 
-//DeleteServer edits the provided server
+// DeleteServer edits the provided server
 func (c *Client) DeleteServerGroup(id string) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/serverGroup"
 	return DelObj(c, path, id)
 }
 
-//GetAppConnectors gets a list of all app connectors
+// GetAppConnectors gets a list of all app connectors
 func (c *Client) GetAppConnectors() ([]AppConnector, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/connector"
 	return GetPaged(c, 500, path, []AppConnector{})
 }
 
-//EditAppConnector edits the provided AppConnector
+// EditAppConnector edits the provided AppConnector
 func (c *Client) EditAppConnector(obj AppConnector) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/connector"
 	return PutObj(c, path, obj, obj.ID)
 }
 
-//DeleteAppConnector edits the provided AppConnector
+// DeleteAppConnector edits the provided AppConnector
 func (c *Client) DeleteAppConnector(id string) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/connector"
 	return DelObj(c, path, id)
 }
 
-//GetAppConnectorGroups gets a list of all app connectors
+// GetAppConnectorGroups gets a list of all app connectors
 func (c *Client) GetAppConnectorGroups() ([]AppConnectorGroup, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
 	return GetPaged(c, 500, path, []AppConnectorGroup{})
 }
 
-//AddAppConnectorGroup adds a AppConnectorGroup
+// AddAppConnectorGroup adds a AppConnectorGroup
 func (c *Client) AddAppConnectorGroup(obj AppConnectorGroup) (string, error) {
 	obj.ID = ""
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
@@ -945,104 +971,104 @@ func (c *Client) AddAppConnectorGroup(obj AppConnectorGroup) (string, error) {
 	return tmp.ID, err
 }
 
-//EditAppConnectorGroup edits the provided AppConnectorGroup
+// EditAppConnectorGroup edits the provided AppConnectorGroup
 func (c *Client) EditAppConnectorGroup(obj AppConnectorGroup) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
 	return PutObj(c, path, obj, obj.ID)
 }
 
-//DeleteAppConnectorGroup edits the provided AppConnectorGroup
+// DeleteAppConnectorGroup edits the provided AppConnectorGroup
 func (c *Client) DeleteAppConnectorGroup(id string) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/appConnectorGroup"
 	return DelObj(c, path, id)
 }
 
-//GetAccessPolicyID gets the global ID for your access policies
+// GetAccessPolicyID gets the global ID for your access policies
 func (c *Client) GetAccessPolicyID() (string, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/ACCESS_POLICY"
 	obj, err := GetObj(c, path, Policy{})
 	return obj.ID, err
 }
 
-//GetReAuthPolicyID gets the global ID for your re-authentication policies
+// GetReAuthPolicyID gets the global ID for your re-authentication policies
 func (c *Client) GetReAuthPolicyID() (string, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/REAUTH_POLICY"
 	obj, err := GetObj(c, path, Policy{})
 	return obj.ID, err
 }
 
-//GetSIEMPolicyID gets the global ID for your SIEM policies
+// GetSIEMPolicyID gets the global ID for your SIEM policies
 func (c *Client) GetSIEMPolicyID() (string, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/SIEM_POLICY"
 	obj, err := GetObj(c, path, Policy{})
 	return obj.ID, err
 }
 
-//GetBypassPolicyID gets the global ID for your bypass policies
+// GetBypassPolicyID gets the global ID for your bypass policies
 func (c *Client) GetBypassPolicyID() (string, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/policyType/BYPASS_POLICY"
 	obj, err := GetObj(c, path, Policy{})
 	return obj.ID, err
 }
 
-//GetAccessPolicies gets a list your access policies
+// GetAccessPolicies gets a list your access policies
 func (c *Client) GetAccessPolicies() ([]Policy, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/ACCESS_POLICY"
 	return GetPaged(c, 500, path, []Policy{})
 }
 
-//GetAccessPolicies gets a list of your reauth policies
+// GetAccessPolicies gets a list of your reauth policies
 func (c *Client) GetReAuthPolicies() ([]Policy, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/REAUTH_POLICY"
 	return GetPaged(c, 500, path, []Policy{})
 }
 
-//GetAccessPolicies gets a list of your SIEM policies
+// GetAccessPolicies gets a list of your SIEM policies
 func (c *Client) GetSIEMPolicies() ([]Policy, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/SIEM_POLICY"
 	return GetPaged(c, 500, path, []Policy{})
 }
 
-//GetAccessPolicies gets a list of your bypass policies
+// GetAccessPolicies gets a list of your bypass policies
 func (c *Client) GetBypassPolicies() ([]Policy, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/rules/policyType/BYPASS_POLICY"
 	return GetPaged(c, 500, path, []Policy{})
 }
 
-//GetIDPs gets a list of your idps
+// GetIDPs gets a list of your idps
 func (c *Client) GetIDPs() ([]IDP, error) {
 	path := "/mgmtconfig/v2/admin/customers/" + c.CustomerId + "/idp"
 	return GetPaged(c, 500, path, []IDP{})
 }
 
-//GetSCIMAttributes gets a list of the scim attributes for a given idp
+// GetSCIMAttributes gets a list of the scim attributes for a given idp
 func (c *Client) GetSCIMAttributes(idpID string) ([]SCIMAttr, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/idp/" + idpID + "/scimattribute"
 	return GetPaged(c, 500, path, []SCIMAttr{})
 }
 
-//GetSCIMAttrValues gets a list of the scim attributes values for a given attribute
+// GetSCIMAttrValues gets a list of the scim attributes values for a given attribute
 func (c *Client) GetSCIMAttrValues(idpID string, attributeID string) ([]string, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/idp/" + idpID + "/attributeID/" + attributeID
 	return GetPaged(c, 500, path, []string{})
 }
 
-//GetSCIMGroups gets a list of the scim attributes values for a given attribute
+// GetSCIMGroups gets a list of the scim attributes values for a given attribute
 func (c *Client) GetSCIMGroups(idpID string) ([]SCIMGroup, error) {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/scimgroup/idp/" + idpID
 	return GetPaged(c, 500, path, []SCIMGroup{})
 }
 
-//GetSCIMGroups gets a list of the scim attributes values for a given attribute
+// GetSCIMGroups gets a list of the scim attributes values for a given attribute
 func (c *Client) GetPostureProfiles() ([]PostureProfile, error) {
 	path := "/mgmtconfig/v2/admin/customers/" + c.CustomerId + "/posture"
 	return GetPaged(c, 500, path, []PostureProfile{})
 }
 
-//AddPolicy adds a policy to the specified policy set
-//Accepted policy type options are "access", "reauth", "siem", "bypass"
-//Function NewClient() returns a client with the policyIDs, if you're not using this function make sure the client has those variables.
-//You can use functions GetXXXXPolicyID() to get the needed policy ID
+// AddPolicy adds a policy to the specified policy set
+// Accepted policy type options are "access", "reauth", "siem", "bypass"
+// Function NewClient() returns a client with the policyIDs, if you're not using this function make sure the client has those variables.
+// You can use functions GetXXXXPolicyID() to get the needed policy ID
 func (c *Client) AddPolicy(obj Policy) (string, error) {
 	obj.ID = ""
 	path := ""
@@ -1069,17 +1095,17 @@ func (c *Client) AddPolicy(obj Policy) (string, error) {
 	return obj.ID, nil
 }
 
-//EditPolicy edits the policy to the specified policy set and the ID on the passed Policy object.
-//you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
+// EditPolicy edits the policy to the specified policy set and the ID on the passed Policy object.
+// you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
 func (c *Client) EditPolicy(obj Policy, policySetID string) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + policySetID + "/rule/" + obj.ID
 	postBody, _ := json.Marshal(obj)
 	return c.putRequest(path, postBody)
 }
 
-//DeletePolicy edits the policy to the specified policy set and the ID on the passed Policy object.
-//Accepted c policy type options are "access", "reauth", "siem", "bypass", default is access policy
-//you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
+// DeletePolicy edits the policy to the specified policy set and the ID on the passed Policy object.
+// Accepted c policy type options are "access", "reauth", "siem", "bypass", default is access policy
+// you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
 func (c *Client) DeletePolicy(policyID string) error {
 	path := ""
 	if c.Policy == "reauth" {
@@ -1094,17 +1120,17 @@ func (c *Client) DeletePolicy(policyID string) error {
 	return c.deleteRequest(path)
 }
 
-//Reorder edits the policy to the specified policy set based on the passed new order
-//you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
+// Reorder edits the policy to the specified policy set based on the passed new order
+// you can get the policysetID with GetAccessPolicyID(), GetReAuthPolicyID(),GetSIEMPolicyID(), GetBypassPolicyID() depending on the policy type
 func (c *Client) ReorderPolicy(ruleID string, policySetID string, newOrder int) error {
 	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/policySet/" + policySetID + "/rule/" + ruleID + "/reorder/" + strconv.Itoa(newOrder)
 	return c.putRequest(path, nil)
 }
 
-//////////////////
-//Helper functions
-//////////////////
-//Generic functions to iterate over all paged results, requieres a client, pagesize usually default is 50 and max 500, and the object the response will be unmarshalled to.
+// ////////////////
+// Helper functions
+// ////////////////
+// Generic functions to iterate over all paged results, requieres a client, pagesize usually default is 50 and max 500, and the object the response will be unmarshalled to.
 func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error) {
 	//Init struct to parse response
 	var res PagedResponse
@@ -1148,10 +1174,12 @@ func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error)
 	return obj, nil
 }
 
-//PostObj : Generic function to marshal an object and send it as HTTP post
+// PostObj : Generic function to marshal an object and send it as HTTP post
 func PostObj[K any](c *Client, path string, obj K) (K, error) {
 	postBody, _ := json.Marshal(obj)
 	body, err := c.postRequest(path, postBody)
+	p, _ := json.MarshalIndent(obj, "", "    ")
+	c.Logger.Debug("HTTP post call", "url", "", "payload", string(p))
 	if err != nil {
 		return obj, err
 	}
@@ -1162,7 +1190,7 @@ func PostObj[K any](c *Client, path string, obj K) (K, error) {
 	return obj, nil
 }
 
-//Get : Generic function to marshal a GET request
+// Get : Generic function to marshal a GET request
 func GetObj[K any](c *Client, path string, tmp K) (K, error) {
 	body, err := c.getRequest(path)
 	if err != nil {
@@ -1175,20 +1203,20 @@ func GetObj[K any](c *Client, path string, tmp K) (K, error) {
 	return tmp, nil
 }
 
-//PutObj : Generic function to marshal an object and send it as HTTP put
+// PutObj : Generic function to marshal an object and send it as HTTP put
 func PutObj[K any](c *Client, path string, obj K, id string) error {
 	path += "/" + id
 	postBody, _ := json.Marshal(obj)
 	return c.putRequest(path, postBody)
 }
 
-//DelObj : Generic function to delete an object based on its id
+// DelObj : Generic function to delete an object based on its id
 func DelObj(c *Client, path string, id string) error {
 	path += "/" + id
 	return c.deleteRequest(path)
 }
 
-//do Function de send the HTTP request and return the response and error
+// do Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
 	//Adding auth header
@@ -1196,7 +1224,7 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 	return c.doWithOptions(req, retryMax)
 }
 
-//doWithOptions Wrapper that receives options and sends an http request
+// doWithOptions Wrapper that receives options and sends an http request
 func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) {
 	//Extracting body payload
 	req, payload := getReqBody(req)
@@ -1235,7 +1263,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	return ioutil.ReadAll(resp.Body)
 }
 
-//getReqBody Finds http payload and resets it
+// getReqBody Finds http payload and resets it
 func getReqBody(req *http.Request) (*http.Request, []byte) {
 	if req.Method == "POST" || req.Method == "PUT" {
 		//Find payload and reset it
@@ -1247,7 +1275,7 @@ func getReqBody(req *http.Request) (*http.Request, []byte) {
 	}
 }
 
-//retryAfter will return the number of seconds an API request needs to wait before trying again
+// retryAfter will return the number of seconds an API request needs to wait before trying again
 func retryAfter(remainingRetries, retries int) int64 {
 	//Detecting which number this retry is
 	d := retries - remainingRetries
@@ -1255,8 +1283,8 @@ func retryAfter(remainingRetries, retries int) int64 {
 	return int64(math.Pow(2, float64(d)))
 }
 
-//httpStatusCheck receives an http response and returns an error based on zscaler documentation.
-//https://help.zscaler.com/zpa/about-error-codes
+// httpStatusCheck receives an http response and returns an error based on zscaler documentation.
+// https://help.zscaler.com/zpa/about-error-codes
 func httpStatusCheck(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		return nil
@@ -1276,7 +1304,7 @@ func httpStatusCheck(resp *http.Response) error {
 	}
 }
 
-//NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
+// NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
 func NewClientBase(BaseURL string, client_id string, client_secret string, CustomerId string) (*Client, error) {
 	//Validating URL
 	_, err := url.Parse(BaseURL)
@@ -1297,11 +1325,12 @@ func NewClientBase(BaseURL string, client_id string, client_secret string, Custo
 		RetryMax:   10,
 		Token:      access_token,
 		CustomerId: CustomerId,
+		Logger:     slog.New(slog.NewJSONHandler(os.Stdout, nil)),
 	}, nil
 }
 
-//NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
-//In addition it adds the policy IDs for ZPA
+// NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
+// In addition it adds the policy IDs for ZPA
 func NewClient(BaseURL string, client_id string, client_secret string, CustomerId string) (*Client, error) {
 	//Getting a base client
 	c, err := NewClientBase(BaseURL, client_id, client_secret, CustomerId)
@@ -1331,7 +1360,7 @@ func NewClient(BaseURL string, client_id string, client_secret string, CustomerI
 	return c, err
 }
 
-//KeyGen function gets the authentication parameter and returns the bearer token which is the header that authenticates the requests
+// KeyGen function gets the authentication parameter and returns the bearer token which is the header that authenticates the requests
 func KeyGen(BaseURL string, client_id string, client_secret string) (string, error) {
 	form := url.Values{}
 	form.Add("client_id", client_id)
@@ -1358,7 +1387,7 @@ func KeyGen(BaseURL string, client_id string, client_secret string) (string, err
 	return token.Token, nil
 }
 
-//postRequest Process and sends HTTP POST requests
+// postRequest Process and sends HTTP POST requests
 func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 	data := bytes.NewBuffer(payload)
 	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, data)
@@ -1368,7 +1397,7 @@ func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 	return c.do(req)
 }
 
-//getRequest Process and sends HTTP GET requests
+// getRequest Process and sends HTTP GET requests
 func (c *Client) getRequest(path string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
@@ -1377,7 +1406,7 @@ func (c *Client) getRequest(path string) ([]byte, error) {
 	return c.do(req)
 }
 
-//Process and sends HTTP PUT requests
+// Process and sends HTTP PUT requests
 func (c *Client) putRequest(path string, payload []byte) error {
 	data := bytes.NewBuffer(payload)
 	req, err := http.NewRequest(http.MethodPut, c.BaseURL+path, data)
@@ -1388,7 +1417,7 @@ func (c *Client) putRequest(path string, payload []byte) error {
 	return err
 }
 
-//Process and sends HTTP Delete requests
+// Process and sends HTTP Delete requests
 func (c *Client) deleteRequest(path string) error {
 	req, err := http.NewRequest(http.MethodDelete, c.BaseURL+path, nil)
 	if err != nil {
