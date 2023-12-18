@@ -93,7 +93,7 @@ func (u AppGroup) GetID() (string, int) {
 
 // UrlCat parses responses for urls categories
 type UrlCat struct {
-	ID                              string   `json:"id"` // This goes from CUSTOM_00 to CUSTOM_256
+	ID                              string   `json:"id,omitempty"` // This goes from CUSTOM_00 to CUSTOM_256
 	ConfiguredName                  string   `json:"configuredName"`
 	Keywords                        []string `json:"keywords,omitempty"`
 	KeywordsRetainingParentCategory []string `json:"keywordsRetainingParentCategory,omitempty"`
@@ -101,8 +101,8 @@ type UrlCat struct {
 	DbCategorizedUrls               []string `json:"dbCategorizedUrls,omitempty"`
 	IPRanges                        []string `json:"ipRanges,omitempty"`
 	IPRangesRetainingParentCategory []string `json:"ipRangesRetainingParentCategory,omitempty"`
-	CustomCategory                  bool     `json:"customCategory"` //set to true if custom
-	SuperCategory                   string   `json:"superCategory"`  //Use USER_DEFINED for custom category creation
+	CustomCategory                  bool     `json:"customCategory,omitempty"` //set to true if custom
+	SuperCategory                   string   `json:"superCategory"`            //Use USER_DEFINED for custom category creation
 	Scopes                          []struct {
 		ScopeGroupMemberEntities []struct {
 			ID         int    `json:"id"`
@@ -124,9 +124,9 @@ type UrlCat struct {
 			} `json:"extensions"`
 		} `json:"ScopeEntities"`
 	} `json:"scopes,omitempty"`
-	Editable         bool   `json:"editable"`
-	Description      string `json:"description"`
-	Type             string `json:"type"`
+	Editable         bool   `json:"editable,omitempty"`
+	Description      string `json:"description,omitempty"`
+	Type             string `json:"type,omitempty"`
 	URLKeywordCounts *struct {
 		TotalURLCount            int `json:"totalUrlCount"`
 		RetainParentURLCount     int `json:"retainParentUrlCount"`
