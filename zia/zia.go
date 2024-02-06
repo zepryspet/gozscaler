@@ -556,6 +556,10 @@ type DLPRule struct {
 	ExcludedDepartments      []NameID `json:"excludedDepartments,omitempty"`
 	ExcludedUsers            []NameID `json:"excludedUsers,omitempty"`
 	ZscalerIncidentReciever  bool     `json:"zscalerIncidentReciever,omitempty"`
+	Severity                 string   `json:"severity,omitempty"`
+	SubRules                 []DLPRule `json:"subRules,omitempty"`
+	ParentRule               int      `json:"parentRule,omitempty"`
+
 }
 
 type Label struct {
