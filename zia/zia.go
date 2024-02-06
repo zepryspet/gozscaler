@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -69,6 +68,11 @@ type UrlRule struct {
 	EnforceTimeValidity    bool     `json:"enforceTimeValidity,omitempty"`
 	Action                 string   `json:"action,omitempty"`
 	Ciparule               bool     `json:"ciparule,omitempty"`
+}
+
+// Delete deletes an object
+func (u UrlRule) Delete(c *Client) error {
+	return c.DeleteUrlRule(u.ID)
 }
 
 // NameID is a helper for json entries with name and ID
@@ -140,6 +144,11 @@ type UrlCat struct {
 	IPRangesRetainingParentCategoryCount int `json:"ipRangesRetainingParentCategoryCount,omitempty"`
 }
 
+// Delete deletes an object
+func (u UrlCat) Delete(c *Client) error {
+	return c.DeleteUrlCat(u.ID)
+}
+
 // GetID returns name, id
 func (u UrlCat) GetID() (string, int) {
 	//If this is a custom category the name is configured name.
@@ -185,6 +194,11 @@ type FwRule struct {
 	Predefined          bool     `json:"predefined,omitempty"`
 }
 
+// Delete deletes an object
+func (u FwRule) Delete(c *Client) error {
+	return c.DeleteFwRule(u.ID)
+}
+
 // IPDstGroup parses responses for IP destination groups
 type IPDstGroup struct {
 	ID           int      `json:"id"`
@@ -196,12 +210,22 @@ type IPDstGroup struct {
 	Countries    []string `json:"countries,omitempty"`
 }
 
+// Delete deletes an object
+func (u IPDstGroup) Delete(c *Client) error {
+	return c.DeleteIPDstGroups(u.ID)
+}
+
 // IPSrcGroup parses responses for IP source groups
 type IPSrcGroup struct {
 	ID          int      `json:"id"`
 	Name        string   `json:"name"`
 	IPAddresses []string `json:"ipAddresses"`
 	Description string   `json:"description,omitempty"`
+}
+
+// Delete deletes an object
+func (u IPSrcGroup) Delete(c *Client) error {
+	return c.DeleteIPSrcGroups(u.ID)
 }
 
 // StartEnd json helper for ranges
@@ -229,6 +253,11 @@ func (u Service) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// Delete deletes an object
+func (u Service) Delete(c *Client) error {
+	return c.DeleteService(u.ID)
+}
+
 // ServiceGroup parses responses for network servicesgroups
 type ServiceGroup struct {
 	ID          int       `json:"id"`
@@ -240,6 +269,11 @@ type ServiceGroup struct {
 // GetID return the name a string and the ID as int
 func (u ServiceGroup) GetID() (string, int) {
 	return u.Name, u.ID
+}
+
+// Delete deletes an object
+func (u ServiceGroup) Delete(c *Client) error {
+	return c.DeleteServiceGroup(u.ID)
 }
 
 //VpnLocation helper to hold vpn credential on a location
@@ -421,6 +455,11 @@ func (u DLPDictionary) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// Delete deletes an object
+func (u DLPDictionary) Delete(c *Client) error {
+	return c.DeleteDLPDictionary(u.ID)
+}
+
 // Phrases holds DLP dictionary phrases
 type Phrase struct {
 	Action string `json:"action,omitempty"`
@@ -472,6 +511,11 @@ func (u DLPEngine) GetID() (string, int) {
 	} else {
 		return u.Name, u.ID
 	}
+}
+
+// Delete deletes an object
+func (u DLPEngine) Delete(c *Client) error {
+	return c.DeleteDLPEngine(u.ID)
 }
 
 // GetDictionaries returns dictionary IDs used on an engine
@@ -562,6 +606,11 @@ type DLPRule struct {
 
 }
 
+// Delete deletes an object
+func (u DLPRule) Delete(c *Client) error {
+	return c.DeleteDLPRule(u.ID)
+}
+
 type Label struct {
 	ID                  int     `json:"id,omitempty"`
 	Name                string  `json:"name,omitempty"`
@@ -577,6 +626,11 @@ func (u Label) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// Delete deletes an object
+func (u Label) Delete(c *Client) error {
+	return c.DeleteLabel(u.ID)
+}
+
 // Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.
 type Zurl interface {
 	GetUrls(string) []string
@@ -588,6 +642,11 @@ type Zurl interface {
 // Zid is the interface for tyopes that can return ID, so most of them
 type Zid interface {
 	GetID() (string, int)
+}
+
+// ZDelete interfaces for objects with delete function
+type ZDelete interface {
+	Delete(*Client) error
 }
 
 // func (c BlockedUrls)  returns all the urls in a blocklist
@@ -815,6 +874,11 @@ func (c *Client) GetIPDstGroups() ([]IPDstGroup, error) {
 	return res, nil
 }
 
+// DeleteIPDstGroups deletes ipDestinationGroups
+func (c *Client) DeleteIPDstGroups(id int) error {
+	return c.deleteRequest("/ipDestinationGroups/" + strconv.Itoa(id))
+}
+
 // AddIPDstGroups adds a firewall filtering rules
 func (c *Client) AddIPDstGroup(obj IPDstGroup) (int, error) {
 	postBody, _ := json.Marshal(obj)
@@ -856,6 +920,11 @@ func (c *Client) GetIPSrcGroups() ([]IPSrcGroup, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+// DeleteIPSrcGroups deletes ipSourceGroups
+func (c *Client) DeleteIPSrcGroups(id int) error {
+	return c.deleteRequest("/ipSourceGroups/" + strconv.Itoa(id))
 }
 
 // AddIPSrcGroup adds a firewall filtering rules
@@ -902,6 +971,11 @@ func (c *Client) AddServiceGroup(obj ServiceGroup) (int, error) {
 	return res.ID, err
 }
 
+// DeleteServiceGroup deletes networkServiceGroups
+func (c *Client) DeleteServiceGroup(id int) error {
+	return c.deleteRequest("/networkServiceGroups/" + strconv.Itoa(id))
+}
+
 // GetService gets a list of network service groups
 func (c *Client) GetServices() ([]Service, error) {
 	body, err := c.getRequest("/networkServices")
@@ -914,6 +988,11 @@ func (c *Client) GetServices() ([]Service, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+// DeleteService deletes networkServices
+func (c *Client) DeleteService(id int) error {
+	return c.deleteRequest("/networkServices/" + strconv.Itoa(id))
 }
 
 // GetService gets a list of network service groups
@@ -968,6 +1047,11 @@ func (c *Client) AddLabel(obj Label) (int, error) {
 		return 0, err
 	}
 	return res.ID, err
+}
+
+// DeleteLabel deletes ruleLabels
+func (c *Client) DeleteLabel(id int) error {
+	return c.deleteRequest("/ruleLabels/" + strconv.Itoa(id))
 }
 
 // GetLocationGroups gets all location groups
@@ -1225,6 +1309,11 @@ func (c *Client) UpdateDLPEngine(obj DLPEngine) error {
 	return nil
 }
 
+// DeleteDLPEngine deletes dlpEngines
+func (c *Client) DeleteDLPEngine(id int) error {
+	return c.deleteRequest("/dlpEngines/" + strconv.Itoa(id))
+}
+
 // GetDLPNotificationTemplates get all the DLP notification templates
 func (c *Client) GetDLPNotificationTemplates() ([]DLPNotificationTemplate, error) {
 	res := []DLPNotificationTemplate{}
@@ -1252,6 +1341,11 @@ func (c *Client) AddDLPNotificationTemplate(entry DLPNotificationTemplate) (int,
 		return 0, err
 	}
 	return res.ID, nil
+}
+
+// DeleteDLPNotificationTemplate deletes dlpNotificationTemplates
+func (c *Client) DeleteDLPNotificationTemplate(id int) error {
+	return c.deleteRequest("/dlpNotificationTemplates/" + strconv.Itoa(id))
 }
 
 // GetDLPEngines get all the DLP engines
@@ -1516,7 +1610,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 			time.Sleep(s)
 			retryMax -= 1
 			// reset Request.Body
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+			req.Body = io.NopCloser(bytes.NewBuffer(payload))
 			return c.doWithOptions(req, retryMax)
 		}
 	}
@@ -1526,7 +1620,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 		time.Sleep(s)
 		retryMax -= 1
 		// reset Request.Body
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+		req.Body = io.NopCloser(bytes.NewBuffer(payload))
 		return c.doWithOptions(req, retryMax)
 	}
 	// Catch all when there's no more retries left
@@ -1534,12 +1628,12 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 // retryAfter will return the number of seconds an API request needs to wait before trying again
 func retryAfter(resp *http.Response) (int64, error) {
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	ret := retry{}
 	err := json.Unmarshal(body, &ret)
 	if err != nil {
@@ -1556,8 +1650,8 @@ func retryAfter(resp *http.Response) (int64, error) {
 func getReqBody(req *http.Request) (*http.Request, []byte) {
 	if req.Method == "POST" || req.Method == "PUT" {
 		//Find payload and reset it
-		payload, _ := ioutil.ReadAll(req.Body)
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+		payload, _ := io.ReadAll(req.Body)
+		req.Body = io.NopCloser(bytes.NewBuffer(payload))
 		return req, payload
 	} else {
 		return req, nil
