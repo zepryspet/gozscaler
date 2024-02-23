@@ -103,6 +103,8 @@ _Below is an example of how you can get started._
     mkdir ztest
     cd ztest
     touch main.go
+    go mod init
+    go mod tidy
     go get github.com/zepryspet/gozscaler
     ```
 2. Open the file `main.go` and add the following program that display your url rules
@@ -120,19 +122,14 @@ _Below is an example of how you can get started._
         if err != nil {
             log.Panic(err)
         }
-        rules, err := c.GetUrlRules()
+        categories, err := c.GetUrlRules()
         if err != nil {
             log.Panic(err)
         }
-        fmt.Println(rules)
+        fmt.Println(categories)
     }
     ```
-3. Init go.mod
-    ```go
-    go mod init
-    go mod tidy
-    ```
-4. Run your program
+3. Run your program
     ```go
     go run main.go
     ```
