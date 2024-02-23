@@ -1549,6 +1549,9 @@ func (c *Client) UpdateUrlCat(category UrlCat) error {
 	if category.Urls == nil {
 		return &ZIAError{Err: "You can't delete all urls, at least 1 url should be sent on url category:" + category.ConfiguredName}
 	}
+	if category.CustomCategory || strings.HasPrefix(category.ID, "CUSTOM_") {
+		category.SuperCategory = "USER_DEFINED"
+	}
 	path := "/urlCategories/" + category.ID
 	postBody, _ := json.Marshal(category)
 	err := c.putRequest(path, postBody)
