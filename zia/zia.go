@@ -70,6 +70,20 @@ type UrlRule struct {
 	Ciparule               bool     `json:"ciparule,omitempty"`
 }
 
+// String prints the struct in json pretty format
+func (p UrlRule) String() string {
+	return jsonString(p)
+}
+
+// JsonString prints the struct in json pretty format
+func jsonString(v any) string {
+	s, e := json.MarshalIndent(v, "", "    ")
+	if e != nil {
+		return "Invalid struct"
+	}
+	return string(s)
+}
+
 // Delete deletes an object
 func (u UrlRule) Delete(c *Client) error {
 	return c.DeleteUrlRule(u.ID)
@@ -144,6 +158,11 @@ type UrlCat struct {
 	IPRangesRetainingParentCategoryCount int `json:"ipRangesRetainingParentCategoryCount,omitempty"`
 }
 
+// String prints the struct in json pretty format
+func (p UrlCat) String() string {
+	return jsonString(p)
+}
+
 // Delete deletes an object
 func (u UrlCat) Delete(c *Client) error {
 	return c.DeleteUrlCat(u.ID)
@@ -199,6 +218,11 @@ func (u FwRule) Delete(c *Client) error {
 	return c.DeleteFwRule(u.ID)
 }
 
+// String prints the struct in json pretty format
+func (p FwRule) String() string {
+	return jsonString(p)
+}
+
 // IPDstGroup parses responses for IP destination groups
 type IPDstGroup struct {
 	ID           int      `json:"id"`
@@ -215,6 +239,11 @@ func (u IPDstGroup) Delete(c *Client) error {
 	return c.DeleteIPDstGroups(u.ID)
 }
 
+// String prints the struct in json pretty format
+func (p IPDstGroup) String() string {
+	return jsonString(p)
+}
+
 // IPSrcGroup parses responses for IP source groups
 type IPSrcGroup struct {
 	ID          int      `json:"id"`
@@ -226,6 +255,11 @@ type IPSrcGroup struct {
 // Delete deletes an object
 func (u IPSrcGroup) Delete(c *Client) error {
 	return c.DeleteIPSrcGroups(u.ID)
+}
+
+// String prints the struct in json pretty format
+func (p IPSrcGroup) String() string {
+	return jsonString(p)
 }
 
 // StartEnd json helper for ranges
@@ -258,6 +292,11 @@ func (u Service) Delete(c *Client) error {
 	return c.DeleteService(u.ID)
 }
 
+// String prints the struct in json pretty format
+func (p Service) String() string {
+	return jsonString(p)
+}
+
 // ServiceGroup parses responses for network servicesgroups
 type ServiceGroup struct {
 	ID          int       `json:"id"`
@@ -276,6 +315,11 @@ func (u ServiceGroup) Delete(c *Client) error {
 	return c.DeleteServiceGroup(u.ID)
 }
 
+// String prints the struct in json pretty format
+func (p ServiceGroup) String() string {
+	return jsonString(p)
+}
+
 //VpnLocation helper to hold vpn credential on a location
 
 type VpnLocation struct {
@@ -283,6 +327,11 @@ type VpnLocation struct {
 	Fqdn         string `json:"fqdn"`
 	PreSharedKey string `json:"preSharedKey"`
 	Comments     string `json:"comments"`
+}
+
+// String prints the struct in json pretty format
+func (p VpnLocation) String() string {
+	return jsonString(p)
 }
 
 // UserFilter filter user searches
@@ -331,6 +380,11 @@ func (u Location) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// String prints the struct in json pretty format
+func (p Location) String() string {
+	return jsonString(p)
+}
+
 // LocationGroup parses location groups
 type LocationGroup struct {
 	ID                           int    `json:"id"`
@@ -368,6 +422,11 @@ func (u LocationGroup) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// String prints the struct in json pretty format
+func (p LocationGroup) String() string {
+	return jsonString(p)
+}
+
 // Department parses user departments
 type Department struct {
 	ID       int    `json:"id,omitempty"`
@@ -382,6 +441,11 @@ func (u Department) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// String prints the struct in json pretty format
+func (p Department) String() string {
+	return jsonString(p)
+}
+
 // UserGroup parses UserGroup
 type UserGroup struct {
 	ID       int    `json:"id,omitempty"`
@@ -393,6 +457,11 @@ type UserGroup struct {
 // GetID return the name a string and the ID as int
 func (u UserGroup) GetID() (string, int) {
 	return u.Name, u.ID
+}
+
+// String prints the struct in json pretty format
+func (p UserGroup) String() string {
+	return jsonString(p)
 }
 
 // Users parses Users
@@ -414,14 +483,29 @@ func (u User) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// String prints the struct in json pretty format
+func (p User) String() string {
+	return jsonString(p)
+}
+
 // BlockedUrls parses responses for blocked urls
 type BlockedUrls struct {
 	Urls []string `json:"blacklistUrls"`
 }
 
+// String prints the struct in json pretty format
+func (p BlockedUrls) String() string {
+	return jsonString(p)
+}
+
 // AllowedUrls parses responses for Allowed urls
 type AllowedUrls struct {
 	Urls []string `json:"whitelistUrls"`
+}
+
+// String prints the struct in json pretty format
+func (p AllowedUrls) String() string {
+	return jsonString(p)
 }
 
 // UrlLookup parses responses for received url categories
@@ -431,6 +515,11 @@ type UrlLookup struct {
 	URLCatSec   []string `json:"urlClassificationsWithSecurityAlert"`
 	Error       string   `json:"error,omitempty"`
 	Application string   `json:"application"`
+}
+
+// String prints the struct in json pretty format
+func (p UrlLookup) String() string {
+	return jsonString(p)
 }
 
 // DLPDictionary holds the DLP dictionaries from ZIA
@@ -458,6 +547,11 @@ func (u DLPDictionary) GetID() (string, int) {
 // Delete deletes an object
 func (u DLPDictionary) Delete(c *Client) error {
 	return c.DeleteDLPDictionary(u.ID)
+}
+
+// String prints the struct in json pretty format
+func (p DLPDictionary) String() string {
+	return jsonString(p)
 }
 
 // Phrases holds DLP dictionary phrases
@@ -537,6 +631,11 @@ func (u DLPEngine) GetDictionaries() []int {
 	return a
 }
 
+// String prints the struct in json pretty format
+func (p DLPEngine) String() string {
+	return jsonString(p)
+}
+
 // DLPNotificationTemplate hols dlp notification template details
 type DLPNotificationTemplate struct {
 	ID               int    `json:"id,omitempty"`
@@ -552,6 +651,11 @@ func (u DLPNotificationTemplate) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// String prints the struct in json pretty format
+func (p DLPNotificationTemplate) String() string {
+	return jsonString(p)
+}
+
 // ICAPServer holds an icap server detail
 type ICAPServer struct {
 	ID     int    `json:"id,omitempty"`
@@ -565,50 +669,59 @@ func (u ICAPServer) GetID() (string, int) {
 	return u.Name, u.ID
 }
 
+// String prints the struct in json pretty format
+func (p ICAPServer) String() string {
+	return jsonString(p)
+}
+
 // DLPRule holds a DLP rule information
 type DLPRule struct {
-	ID                       int      `json:"id,omitempty"`
-	Order                    int      `json:"order,omitempty"`
-	Protocols                []string `json:"protocols,omitempty"`
-	Rank                     int      `json:"rank,omitempty"`
-	Description              string   `json:"description,omitempty"`
-	Locations                []NameID `json:"locations,omitempty"`
-	LocationGroups           []NameID `json:"locationGroups,omitempty"`
-	Groups                   []NameID `json:"groups,omitempty"`
-	Departments              []NameID `json:"departments,omitempty"`
-	Users                    []NameID `json:"users,omitempty"`
-	URLCategories            []NameID `json:"urlCategories,omitempty"`
-	DlpEngines               []NameID `json:"dlpEngines,omitempty"`
-	FileTypes                []string `json:"fileTypes,omitempty"`
-	CloudApplications        []string `json:"cloudApplications,omitempty"`
-	MinSize                  int      `json:"minSize,omitempty"`
-	Action                   string   `json:"action,omitempty"`
-	State                    string   `json:"state,omitempty"`
-	TimeWindows              []NameID `json:"timeWindows,omitempty"`
-	Auditor                  *NameID  `json:"auditor,omitempty"`
-	ExternalAuditorEmail     string   `json:"externalAuditorEmail,omitempty"`
-	NotificationTemplate     *NameID  `json:"notificationTemplate,omitempty"`
-	MatchOnly                bool     `json:"matchOnly,omitempty"`
-	LastModifiedTime         int      `json:"lastModifiedTime,omitempty"`
-	LastModifiedBy           *NameID  `json:"lastModifiedBy,omitempty"`
-	IcapServer               *NameID  `json:"icapServer,omitempty"`
-	WithoutContentInspection bool     `json:"withoutContentInspection"`
-	Name                     string   `json:"name,omitempty"`
-	Labels                   []NameID `json:"labels,omitempty"`
-	OcrEnabled               bool     `json:"ocrEnabled,omitempty"`
-	ExcludedGroups           []NameID `json:"excludedGroups,omitempty"`
-	ExcludedDepartments      []NameID `json:"excludedDepartments,omitempty"`
-	ExcludedUsers            []NameID `json:"excludedUsers,omitempty"`
-	ZscalerIncidentReciever  bool     `json:"zscalerIncidentReciever,omitempty"`
-	Severity                 string   `json:"severity,omitempty"`
+	ID                       int       `json:"id,omitempty"`
+	Order                    int       `json:"order,omitempty"`
+	Protocols                []string  `json:"protocols,omitempty"`
+	Rank                     int       `json:"rank,omitempty"`
+	Description              string    `json:"description,omitempty"`
+	Locations                []NameID  `json:"locations,omitempty"`
+	LocationGroups           []NameID  `json:"locationGroups,omitempty"`
+	Groups                   []NameID  `json:"groups,omitempty"`
+	Departments              []NameID  `json:"departments,omitempty"`
+	Users                    []NameID  `json:"users,omitempty"`
+	URLCategories            []NameID  `json:"urlCategories,omitempty"`
+	DlpEngines               []NameID  `json:"dlpEngines,omitempty"`
+	FileTypes                []string  `json:"fileTypes,omitempty"`
+	CloudApplications        []string  `json:"cloudApplications,omitempty"`
+	MinSize                  int       `json:"minSize,omitempty"`
+	Action                   string    `json:"action,omitempty"`
+	State                    string    `json:"state,omitempty"`
+	TimeWindows              []NameID  `json:"timeWindows,omitempty"`
+	Auditor                  *NameID   `json:"auditor,omitempty"`
+	ExternalAuditorEmail     string    `json:"externalAuditorEmail,omitempty"`
+	NotificationTemplate     *NameID   `json:"notificationTemplate,omitempty"`
+	MatchOnly                bool      `json:"matchOnly,omitempty"`
+	LastModifiedTime         int       `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy           *NameID   `json:"lastModifiedBy,omitempty"`
+	IcapServer               *NameID   `json:"icapServer,omitempty"`
+	WithoutContentInspection bool      `json:"withoutContentInspection"`
+	Name                     string    `json:"name,omitempty"`
+	Labels                   []NameID  `json:"labels,omitempty"`
+	OcrEnabled               bool      `json:"ocrEnabled,omitempty"`
+	ExcludedGroups           []NameID  `json:"excludedGroups,omitempty"`
+	ExcludedDepartments      []NameID  `json:"excludedDepartments,omitempty"`
+	ExcludedUsers            []NameID  `json:"excludedUsers,omitempty"`
+	ZscalerIncidentReciever  bool      `json:"zscalerIncidentReciever,omitempty"`
+	Severity                 string    `json:"severity,omitempty"`
 	SubRules                 []DLPRule `json:"subRules,omitempty"`
-	ParentRule               int      `json:"parentRule,omitempty"`
-
+	ParentRule               int       `json:"parentRule,omitempty"`
 }
 
 // Delete deletes an object
 func (u DLPRule) Delete(c *Client) error {
 	return c.DeleteDLPRule(u.ID)
+}
+
+// String prints the struct in json pretty format
+func (p DLPRule) String() string {
+	return jsonString(p)
 }
 
 type Label struct {
@@ -629,6 +742,11 @@ func (u Label) GetID() (string, int) {
 // Delete deletes an object
 func (u Label) Delete(c *Client) error {
 	return c.DeleteLabel(u.ID)
+}
+
+// String prints the struct in json pretty format
+func (p Label) String() string {
+	return jsonString(p)
 }
 
 // Zurl is an interface that allows you to interact with 3 different types of url objects: allowlist, blocklist and url objects.

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -184,6 +183,20 @@ func (obj AppSegment) Create(c *Client) (string, error) {
 	return c.AddAppSegment(obj)
 }
 
+// String prints the struct in json pretty format
+func (p AppSegment) String() string {
+	return jsonString(p)
+}
+
+// JsonString prints the struct in json pretty format
+func jsonString(v any) string {
+	s, e := json.MarshalIndent(v, "", "    ")
+	if e != nil {
+		return "Invalid struct"
+	}
+	return string(s)
+}
+
 // ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *AppSegment) ResetID(m map[string]string) bool {
 	notFound := false
@@ -251,6 +264,11 @@ func (obj SegmentGroup) Create(c *Client) (string, error) {
 	return c.AddSegmentGroup(obj)
 }
 
+// String prints the struct in json pretty format
+func (p SegmentGroup) String() string {
+	return jsonString(p)
+}
+
 // ResetID Only add objects if references to them exist on the map map[OldID]newID
 func (obj *SegmentGroup) ResetID(m map[string]string) bool {
 	notFound := false
@@ -295,6 +313,11 @@ func (obj Server) GetID() (string, string) {
 // Create creates the object on the ZPA tenant registered with the client
 func (obj Server) Create(c *Client) (string, error) {
 	return c.AddServer(obj)
+}
+
+// String prints the struct in json pretty format
+func (p Server) String() string {
+	return jsonString(p)
 }
 
 // ResetID Only add objects if references to them exist on the map map[OldID]newID
@@ -343,6 +366,11 @@ func (obj ServerGroup) GetID() (string, string) {
 // Create creates the object on the ZPA tenant registered with the client
 func (obj ServerGroup) Create(c *Client) (string, error) {
 	return c.AddServerGroup(obj)
+}
+
+// String prints the struct in json pretty format
+func (p ServerGroup) String() string {
+	return jsonString(p)
 }
 
 // ResetID Only add objects if references to them exist on the map map[OldID]newID
@@ -433,6 +461,11 @@ func (obj AppConnector) GetID() (string, string) {
 	return obj.Name, obj.ID
 }
 
+// String prints the struct in json pretty format
+func (p AppConnector) String() string {
+	return jsonString(p)
+}
+
 // AppConnectorGroup hold app connector groups from zpa
 type AppConnectorGroup struct {
 	Connectors                    []AppConnector `json:"connectors,omitempty"`
@@ -469,6 +502,11 @@ func (obj AppConnectorGroup) GetID() (string, string) {
 // Create creates the object on the ZPA tenant registered with the client
 func (obj AppConnectorGroup) Create(c *Client) (string, error) {
 	return c.AddAppConnectorGroup(obj)
+}
+
+// String prints the struct in json pretty format
+func (p AppConnectorGroup) String() string {
+	return jsonString(p)
 }
 
 // ResetID Only add objects if references to them exist on the map map[OldID]newID
@@ -584,6 +622,11 @@ type Policy struct {
 // Create creates the object on the ZPA tenant registered with the client
 func (obj Policy) Create(c *Client) (string, error) {
 	return c.AddPolicy(obj)
+}
+
+// String prints the struct in json pretty format
+func (p Policy) String() string {
+	return jsonString(p)
 }
 
 // ResetID Only add objects if references to them exist on the map map[OldID]newID
@@ -751,6 +794,11 @@ type IDP struct {
 	UserSpSigningCertID int `json:"userSpSigningCertId,omitempty"`
 }
 
+// String prints the struct in json pretty format
+func (p IDP) String() string {
+	return jsonString(p)
+}
+
 // SCIMAttr holds the IDP scim attributes
 type SCIMAttr struct {
 	CanonicalValues []string `json:"canonicalValues"`
@@ -795,6 +843,11 @@ type PostureProfile struct {
 	ZscalerCustomerID int    `json:"zscalerCustomerId,omitempty"`
 }
 
+// String prints the struct in json pretty format
+func (p PostureProfile) String() string {
+	return jsonString(p)
+}
+
 type VersionProfile struct {
 	ID              string `json:"id,omitempty"`
 	ModifiedTime    string `json:"modifiedTime,omitempty"`
@@ -805,6 +858,11 @@ type VersionProfile struct {
 	UpgradePriority string `json:"upgradePriority,omitempty"`
 	VisibilityScope string `json:"visibilityScope,omitempty"`
 	CustomerID      string `json:"customerId,omitempty"`
+}
+
+// String prints the struct in json pretty format
+func (p VersionProfile) String() string {
+	return jsonString(p)
 }
 
 // GetID return the object name, ID
@@ -1242,7 +1300,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 			time.Sleep(s)
 			retryMax -= 1
 			// reset Request.Body
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+			req.Body = io.NopCloser(bytes.NewBuffer(payload))
 			return c.doWithOptions(req, retryMax)
 		}
 	}
@@ -1252,7 +1310,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 		time.Sleep(s)
 		retryMax -= 1
 		// reset Request.Body
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+		req.Body = io.NopCloser(bytes.NewBuffer(payload))
 		return c.doWithOptions(req, retryMax)
 	}
 	// Catch all when there's no more retries left
@@ -1260,15 +1318,15 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 // getReqBody Finds http payload and resets it
 func getReqBody(req *http.Request) (*http.Request, []byte) {
 	if req.Method == "POST" || req.Method == "PUT" {
 		//Find payload and reset it
-		payload, _ := ioutil.ReadAll(req.Body)
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+		payload, _ := io.ReadAll(req.Body)
+		req.Body = io.NopCloser(bytes.NewBuffer(payload))
 		return req, payload
 	} else {
 		return req, nil
