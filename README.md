@@ -71,12 +71,12 @@ Gozscaler is an sdk for zscaler public apis built purely in go and without 3rd p
 ZPA sdk
 
 * [Client secret and client api.](https://help.zscaler.com/zpa/zpa-api/api-developer-reference-guide) 
-* Cloud name. options:
+* Cloud name options:
     * config.private.zscaler.com
     * config.zpabeta.net
 
 ZIA sdk
-* Administrator, password
+* Administrator & password
 * [Api key](https://help.zscaler.com/zia/getting-started-zia-api)
 * Cloud name options:
     * zscaler

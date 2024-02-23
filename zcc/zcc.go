@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -103,6 +102,20 @@ type Device struct {
 	ZDXEnabled       string `csv:"ZDX Enabled"`
 	ZDXHealth        string `csv:"ZDX Health"`
 	ZDXLastConnected string `csv:"Last Seen Connected to ZDX"`
+}
+
+// String prints the struct in json pretty format
+func (p Device) String() string {
+	return jsonString(p)
+}
+
+// JsonString prints the struct in json pretty format
+func jsonString(v any) string {
+	s, e := json.MarshalIndent(v, "", "    ")
+	if e != nil {
+		return "Invalid struct"
+	}
+	return string(s)
 }
 
 // Client is the struct holding the client parameters for http calls
@@ -392,7 +405,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 			time.Sleep(s)
 			retryMax -= 1
 			// reset Request.Body
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+			req.Body = io.NopCloser(bytes.NewBuffer(payload))
 			return c.doWithOptions(req, retryMax)
 		}
 	}
@@ -402,7 +415,7 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 		time.Sleep(s)
 		retryMax -= 1
 		// reset Request.Body
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+		req.Body = io.NopCloser(bytes.NewBuffer(payload))
 		return c.doWithOptions(req, retryMax)
 	}
 	// Catch all when there's no more retries left
@@ -410,15 +423,15 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 // getReqBody Finds http payload and resets it
 func getReqBody(req *http.Request) (*http.Request, []byte) {
 	if req.Method == "POST" || req.Method == "PUT" {
 		//Find payload and reset it
-		payload, _ := ioutil.ReadAll(req.Body)
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(payload))
+		payload, _ := io.ReadAll(req.Body)
+		req.Body = io.NopCloser(bytes.NewBuffer(payload))
 		return req, payload
 	} else {
 		return req, nil
