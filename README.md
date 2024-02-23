@@ -78,7 +78,7 @@ ZPA sdk
 ZIA sdk
 * Administrator, password
 * [Api key](https://help.zscaler.com/zia/getting-started-zia-api)
-* Cloud name. options:
+* Cloud name options:
     * zscaler
     * zscloud
     * zscalerbeta
@@ -103,6 +103,7 @@ _Below is an example of how you can get started._
     mkdir ztest
     cd ztest
     touch main.go
+    go get github.com/zepryspet/gozscaler
     ```
 2. Open the file `main.go` and add the following program that display your url rules
    ```go
@@ -119,7 +120,7 @@ _Below is an example of how you can get started._
         if err != nil {
             log.Panic(err)
         }
-        rules, err := c.ListUrlRules()
+        rules, err := c.GetUrlRules()
         if err != nil {
             log.Panic(err)
         }
