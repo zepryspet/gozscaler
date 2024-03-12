@@ -49,9 +49,10 @@ type UrlRule struct {
 	URLCategories          []string `json:"urlCategories,omitempty"`
 	State                  string   `json:"state,omitempty"` //"ENABLED" or "DISABLED"
 	TimeWindows            []NameID `json:"timeWindows,omitempty"`
+	SourceIpGroups         []NameID `json:"sourceIpGroups,omitempty"`
 	Rank                   int      `json:"rank"`
 	RequestMethods         []string `json:"requestMethods,omitempty"`
-	EndUserNotificationURL string   `json:"endUserNotificationUrl"`
+	EndUserNotificationURL string   `json:"endUserNotificationUrl,omitempty"`
 	OverrideUsers          []NameID `json:"overrideUsers,omitempty"`
 	OverrideGroups         []NameID `json:"overrideGroups,omitempty"`
 	BlockOverride          bool     `json:"blockOverride,omitempty"`
@@ -60,10 +61,10 @@ type UrlRule struct {
 	Description            string   `json:"description,omitempty"`
 	LocationGroups         []NameID `json:"locationGroups,omitempty"`
 	Labels                 []NameID `json:"labels,omitempty"`
-	ValidityStartTime      int      `json:"validityStartTime"`
-	ValidityEndTime        int      `json:"validityEndTime"`
-	ValidityTimeZoneID     string   `json:"validityTimeZoneId"`
-	LastModifiedTime       int      `json:"lastModifiedTime"`
+	ValidityStartTime      int      `json:"validityStartTime,omitempty"`
+	ValidityEndTime        int      `json:"validityEndTime,omitempty"`
+	ValidityTimeZoneID     string   `json:"validityTimeZoneId,omitempty"`
+	LastModifiedTime       int      `json:"lastModifiedTime,omitempty"`
 	LastModifiedBy         *NameID  `json:"lastModifiedBy,omitempty"`
 	EnforceTimeValidity    bool     `json:"enforceTimeValidity,omitempty"`
 	Action                 string   `json:"action,omitempty"`
