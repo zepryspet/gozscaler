@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -34,6 +36,7 @@ type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
 	RetryMax   int
+	Log        *slog.Logger
 }
 
 // UrlRule parses responses for urls policies
@@ -844,7 +847,13 @@ type retry struct {
 
 // NewClient returns a client with the auth cookie, default http timeouts and max retries per requests
 // cloud options: zscaler, zscalertwo, zscloud, etc.
+// logger is set to info unless an env variable  SLOG is set to DEBUG and st.dout
 func NewClient(cloud string, admin string, pass string, apiKey string) (*Client, error) {
+	return NewClientLogger(cloud, admin, pass, apiKey, os.Getenv("SLOG"), os.Stdout)
+}
+
+// New client logger creates a new cliente with a custom slog logger
+func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Client, error) {
 	BaseURL := "https://zsapi." + cloud + ".net/api/v1"
 	cookie, err := KeyGen(BaseURL, admin, pass, apiKey)
 	if err != nil {
@@ -859,6 +868,13 @@ func NewClient(cloud string, admin string, pass string, apiKey string) (*Client,
 		return &Client{}, &ZIAError{Err: "failed to parse API URL"}
 	}
 	CookieJar.SetCookies(u, cookie)
+	opts := &slog.HandlerOptions{} //level info by default
+	if level == "DEBUG" {
+		opts.Level = slog.LevelDebug
+	}
+	parent := slog.New(slog.NewJSONHandler(w, opts))
+	child := parent.With(slog.String("module", "gozscaler"),
+		slog.String("client", "zia"))
 	return &Client{
 		BaseURL: BaseURL,
 		HTTPClient: &http.Client{
@@ -866,6 +882,7 @@ func NewClient(cloud string, admin string, pass string, apiKey string) (*Client,
 			Timeout: time.Second * 20,
 		},
 		RetryMax: 10,
+		Log:      child,
 	}, nil
 }
 
@@ -1706,7 +1723,21 @@ func (c *Client) putRequest(path string, payload []byte) error {
 // do Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
-	return c.doWithOptions(req, retryMax)
+	r, err := c.doWithOptions(req, retryMax)
+	if err != nil {
+		c.Log.Info("HTTP failed with error ",
+			slog.String("url", req.URL.String()),
+			slog.String("error", fmt.Sprint(err)),
+			slog.String("method", req.Method))
+	}
+	c.Log.Info("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("response body", string(r)),
+		slog.String("method", req.Method))
+	return r, err
 }
 
 // doWithOptions Wrapper that receives options and sends an http request
@@ -1714,6 +1745,13 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	//Extracting body payload
 	req, payload := getReqBody(req)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	c.Log.Info("sending HTTP request",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("sending HTTP request",
+		slog.String("url", req.URL.String()),
+		slog.String("body", string(payload)), // logging payload and cookies
+		slog.String("method", req.Method))
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -1727,6 +1765,11 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 			if err != nil {
 				return nil, err
 			}
+			c.Log.Info(fmt.Sprintf("received HTTP 429 waiting for %v seconds", t),
+				slog.String("url", req.URL.String()),
+				slog.String("method", req.Method),
+				slog.String("retries left", fmt.Sprint(retryMax)),
+			)
 			//Wait for x seconds minus TLs setup time -average 150ms-
 			s := (time.Duration(t) * time.Second) - (150 * time.Millisecond)
 			time.Sleep(s)
@@ -1739,6 +1782,10 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	//Retry if the service is unavailable.
 	if resp.StatusCode == 503 {
 		s := time.Duration(retryMax) * time.Second
+		c.Log.Info(fmt.Sprintf("received HTTP 503 retrying in %s ", s),
+			slog.String("url", req.URL.String()),
+			slog.String("method", req.Method),
+		)
 		time.Sleep(s)
 		retryMax -= 1
 		// reset Request.Body

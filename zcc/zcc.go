@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -124,6 +126,7 @@ type Client struct {
 	HTTPClient *http.Client
 	RetryMax   int
 	Token      string
+	Log        *slog.Logger
 }
 
 // Authenticate receives autentication information and returns the authentication token and error if exist
@@ -164,6 +167,10 @@ func Authenticate(base_url string, client_id string, secret_key string) (string,
 // clientSecret is generated once in the mobile portal, if you can see it generate a new one
 // clientID can be seen in the mobile portal
 func NewClient(cloudName string, clientID string, clientSecret string) (*Client, error) {
+	return NewClientLogger(cloudName, clientID, clientSecret, os.Getenv("SLOG"), os.Stdout)
+}
+
+func NewClientLogger(cloudName, clientID, clientSecret, level string, w io.Writer) (*Client, error) {
 	BaseURL := "https://api-mobile." + cloudName + ".net/papi"
 	//Validating URL
 	_, err := url.Parse(BaseURL)
@@ -175,6 +182,13 @@ func NewClient(cloudName string, clientID string, clientSecret string) (*Client,
 	if err != nil {
 		return &Client{}, err
 	}
+	opts := &slog.HandlerOptions{} //level info by default
+	if level == "DEBUG" {
+		opts.Level = slog.LevelDebug
+	}
+	parent := slog.New(slog.NewJSONHandler(w, opts))
+	child := parent.With(slog.String("module", "gozscaler"),
+		slog.String("client", "zia"))
 	return &Client{
 		BaseURL: BaseURL + "/public/v1",
 		HTTPClient: &http.Client{
@@ -182,6 +196,7 @@ func NewClient(cloudName string, clientID string, clientSecret string) (*Client,
 		},
 		RetryMax: 10,
 		Token:    access_token,
+		Log:      child,
 	}, nil
 
 }
@@ -384,7 +399,22 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
 	//Adding auth header
 	req.Header.Set("auth-token", c.Token)
-	return c.doWithOptions(req, retryMax)
+	r, err := c.doWithOptions(req, retryMax)
+	if err != nil {
+		c.Log.Info("HTTP failed with error ",
+			slog.String("url", req.URL.String()),
+			slog.String("error", fmt.Sprint(err)),
+			slog.String("method", req.Method))
+		return r, err
+	}
+	c.Log.Info("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("response body", string(r)),
+		slog.String("method", req.Method))
+	return r, err
 }
 
 // doWithOptions Wrapper that receives options and sends an http request
@@ -392,6 +422,13 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	//Extracting body payload
 	req, payload := getReqBody(req)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	c.Log.Info("sending HTTP request",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("sending HTTP request",
+		slog.String("url", req.URL.String()),
+		slog.String("body", string(payload)), // logging payload and cookies
+		slog.String("method", req.Method))
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -402,6 +439,11 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 		// Retrying after X seconds only if you have retries left.
 		if retryMax > 0 {
 			s := time.Duration(retryAfter(retryMax, c.RetryMax)) * time.Second
+			c.Log.Info(fmt.Sprintf("received HTTP 429 waiting for %v seconds", s),
+				slog.String("url", req.URL.String()),
+				slog.String("method", req.Method),
+				slog.String("retries left", fmt.Sprint(retryMax)),
+			)
 			time.Sleep(s)
 			retryMax -= 1
 			// reset Request.Body
@@ -412,6 +454,10 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	//Retry if the service is unavailable.
 	if resp.StatusCode == 503 {
 		s := time.Duration(retryAfter(retryMax, c.RetryMax)) * time.Second
+		c.Log.Info(fmt.Sprintf("received HTTP 503 retrying in %s ", s),
+			slog.String("url", req.URL.String()),
+			slog.String("method", req.Method),
+		)
 		time.Sleep(s)
 		retryMax -= 1
 		// reset Request.Body

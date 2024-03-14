@@ -32,7 +32,7 @@ type Client struct {
 	BypassID   string //ID for Bypass ID policy
 	Policy     string //Options are : access,reauth,siem,bypass
 	//Policy type so we can detect which kind of policy you want to interact with.
-	Logger *slog.Logger
+	Log *slog.Logger
 }
 
 // myToken parses the auth response
@@ -1236,8 +1236,6 @@ func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error)
 func PostObj[K any](c *Client, path string, obj K) (K, error) {
 	postBody, _ := json.Marshal(obj)
 	body, err := c.postRequest(path, postBody)
-	p, _ := json.MarshalIndent(obj, "", "    ")
-	c.Logger.Debug("HTTP post call", "url", "", "payload", string(p))
 	if err != nil {
 		return obj, err
 	}
@@ -1279,7 +1277,22 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
 	//Adding auth header
 	req.Header.Add("Authorization", "Bearer "+c.Token)
-	return c.doWithOptions(req, retryMax)
+	r, err := c.doWithOptions(req, retryMax)
+	if err != nil {
+		c.Log.Info("HTTP failed with error ",
+			slog.String("url", req.URL.String()),
+			slog.String("error", fmt.Sprint(err)),
+			slog.String("method", req.Method))
+		return r, err
+	}
+	c.Log.Info("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("response body", string(r)),
+		slog.String("method", req.Method))
+	return r, err
 }
 
 // doWithOptions Wrapper that receives options and sends an http request
@@ -1287,6 +1300,13 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	//Extracting body payload
 	req, payload := getReqBody(req)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	c.Log.Info("sending HTTP request",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("sending HTTP request",
+		slog.String("url", req.URL.String()),
+		slog.String("body", string(payload)), // logging payload and cookies
+		slog.String("method", req.Method))
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -1297,6 +1317,11 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 		// Retrying after X seconds only if you have retries left.
 		if retryMax > 0 {
 			s := time.Duration(retryAfter(retryMax, c.RetryMax)) * time.Second
+			c.Log.Info(fmt.Sprintf("received HTTP 429 waiting for %v seconds", s),
+				slog.String("url", req.URL.String()),
+				slog.String("method", req.Method),
+				slog.String("retries left", fmt.Sprint(retryMax)),
+			)
 			time.Sleep(s)
 			retryMax -= 1
 			// reset Request.Body
@@ -1307,6 +1332,10 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	//Retry if the service is unavailable.
 	if resp.StatusCode == 503 {
 		s := time.Duration(retryAfter(retryMax, c.RetryMax)) * time.Second
+		c.Log.Info(fmt.Sprintf("received HTTP 503 retrying in %s ", s),
+			slog.String("url", req.URL.String()),
+			slog.String("method", req.Method),
+		)
 		time.Sleep(s)
 		retryMax -= 1
 		// reset Request.Body
@@ -1363,7 +1392,7 @@ func httpStatusCheck(resp *http.Response) error {
 }
 
 // NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
-func NewClientBase(BaseURL string, client_id string, client_secret string, CustomerId string) (*Client, error) {
+func NewClientBase(BaseURL, client_id, client_secret, CustomerId, level string, w io.Writer) (*Client, error) {
 	//Validating URL
 	_, err := url.Parse(BaseURL)
 	if err != nil {
@@ -1375,6 +1404,13 @@ func NewClientBase(BaseURL string, client_id string, client_secret string, Custo
 		return &Client{}, fmt.Errorf("error login with client id: %v, error:%v", client_id, err)
 	}
 	//Returning client
+	opts := &slog.HandlerOptions{} //level info by default
+	if level == "DEBUG" {
+		opts.Level = slog.LevelDebug
+	}
+	parent := slog.New(slog.NewJSONHandler(w, opts))
+	child := parent.With(slog.String("module", "gozscaler"),
+		slog.String("client", "zpa"))
 	return &Client{
 		BaseURL: BaseURL,
 		HTTPClient: &http.Client{
@@ -1383,7 +1419,7 @@ func NewClientBase(BaseURL string, client_id string, client_secret string, Custo
 		RetryMax:   10,
 		Token:      access_token,
 		CustomerId: CustomerId,
-		Logger:     slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+		Log:        child,
 	}, nil
 }
 
@@ -1391,7 +1427,7 @@ func NewClientBase(BaseURL string, client_id string, client_secret string, Custo
 // In addition it adds the policy IDs for ZPA
 func NewClient(BaseURL string, client_id string, client_secret string, CustomerId string) (*Client, error) {
 	//Getting a base client
-	c, err := NewClientBase(BaseURL, client_id, client_secret, CustomerId)
+	c, err := NewClientBase(BaseURL, client_id, client_secret, CustomerId, os.Getenv("SLOG"), os.Stdout)
 	if err != nil {
 		return c, err
 	}
