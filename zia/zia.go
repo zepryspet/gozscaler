@@ -1343,6 +1343,19 @@ func (c *Client) GetUrlCats() ([]UrlCat, error) {
 	return res, nil
 }
 
+func (c *Client) GetTldCats() ([]UrlCat, error) {
+	res := []UrlCat{}
+	body, err := c.getRequest("/urlCategories?type=TLD_CATEGORY")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
 // GetDLPDictionaries get all the DLP dictionaries
 func (c *Client) GetDLPDictionaries() ([]DLPDictionary, error) {
 	res := []DLPDictionary{}
