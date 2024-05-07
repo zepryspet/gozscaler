@@ -41,37 +41,45 @@ type Client struct {
 
 // UrlRule parses responses for urls policies
 type UrlRule struct {
-	ID                     int      `json:"id"`
-	Name                   string   `json:"name"`
-	Order                  int      `json:"order,omitempty"`
-	Protocols              []string `json:"protocols,omitempty"`
-	Locations              []NameID `json:"locations,omitempty"`
-	Groups                 []NameID `json:"groups,omitempty"`
-	Departments            []NameID `json:"departments,omitempty"`
-	Users                  []NameID `json:"users,omitempty"`
-	URLCategories          []string `json:"urlCategories,omitempty"`
-	State                  string   `json:"state,omitempty"` //"ENABLED" or "DISABLED"
-	TimeWindows            []NameID `json:"timeWindows,omitempty"`
-	SourceIpGroups         []NameID `json:"sourceIpGroups,omitempty"`
-	Rank                   int      `json:"rank"`
-	RequestMethods         []string `json:"requestMethods,omitempty"`
-	EndUserNotificationURL string   `json:"endUserNotificationUrl,omitempty"`
-	OverrideUsers          []NameID `json:"overrideUsers,omitempty"`
-	OverrideGroups         []NameID `json:"overrideGroups,omitempty"`
-	BlockOverride          bool     `json:"blockOverride,omitempty"`
-	TimeQuota              int      `json:"timeQuota,omitempty"`
-	SizeQuota              int      `json:"sizeQuota,omitempty"`
-	Description            string   `json:"description,omitempty"`
-	LocationGroups         []NameID `json:"locationGroups,omitempty"`
-	Labels                 []NameID `json:"labels,omitempty"`
-	ValidityStartTime      int      `json:"validityStartTime,omitempty"`
-	ValidityEndTime        int      `json:"validityEndTime,omitempty"`
-	ValidityTimeZoneID     string   `json:"validityTimeZoneId,omitempty"`
-	LastModifiedTime       int      `json:"lastModifiedTime,omitempty"`
-	LastModifiedBy         *NameID  `json:"lastModifiedBy,omitempty"`
-	EnforceTimeValidity    bool     `json:"enforceTimeValidity,omitempty"`
-	Action                 string   `json:"action,omitempty"`
-	Ciparule               bool     `json:"ciparule,omitempty"`
+	ID                     int        `json:"id,omitempty"`
+	Name                   string     `json:"name"`
+	Order                  int        `json:"order,omitempty"`
+	Protocols              []string   `json:"protocols,omitempty"`
+	Locations              []NameID   `json:"locations,omitempty"`
+	Groups                 []NameID   `json:"groups,omitempty"`
+	Departments            []NameID   `json:"departments,omitempty"`
+	Users                  []NameID   `json:"users,omitempty"`
+	URLCategories          []string   `json:"urlCategories,omitempty"`
+	State                  string     `json:"state,omitempty"` //"ENABLED" or "DISABLED"
+	TimeWindows            []NameID   `json:"timeWindows,omitempty"`
+	SourceIpGroups         []NameID   `json:"sourceIpGroups,omitempty"`
+	Rank                   int        `json:"rank"`
+	RequestMethods         []string   `json:"requestMethods,omitempty"`
+	EndUserNotificationURL string     `json:"endUserNotificationUrl,omitempty"`
+	OverrideUsers          []NameID   `json:"overrideUsers,omitempty"`
+	OverrideGroups         []NameID   `json:"overrideGroups,omitempty"`
+	BlockOverride          bool       `json:"blockOverride,omitempty"`
+	TimeQuota              int        `json:"timeQuota,omitempty"`
+	SizeQuota              int        `json:"sizeQuota,omitempty"`
+	Description            string     `json:"description,omitempty"`
+	LocationGroups         []NameID   `json:"locationGroups,omitempty"`
+	Labels                 []NameID   `json:"labels,omitempty"`
+	ValidityStartTime      int        `json:"validityStartTime,omitempty"`
+	ValidityEndTime        int        `json:"validityEndTime,omitempty"`
+	ValidityTimeZoneID     string     `json:"validityTimeZoneId,omitempty"`
+	LastModifiedTime       int        `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy         *NameID    `json:"lastModifiedBy,omitempty"`
+	EnforceTimeValidity    bool       `json:"enforceTimeValidity,omitempty"`
+	Action                 string     `json:"action,omitempty"`
+	Ciparule               bool       `json:"ciparule,omitempty"`
+	UserAgentTypes         []string   `json:"userAgentTypes,omitempty"`
+	CbiProfile             CbiProfile `json:"cbiProfile,omitempty"`
+}
+
+type CbiProfile struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	URL  string `json:"url,omitempty"`
 }
 
 // String prints the struct in json pretty format
@@ -98,6 +106,11 @@ type NameID struct {
 	ID   int    `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 	Uuid string `json:"uuid,omitempty"`
+}
+
+type NameStringID struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 // AppGroup parses network application groups
@@ -678,6 +691,11 @@ func (p ICAPServer) String() string {
 	return jsonString(p)
 }
 
+// GetID return the name a string and the ID as string
+func (u CbiProfile) GetUUIDs() (string, string) {
+	return u.Name, u.ID
+}
+
 // DLPRule holds a DLP rule information
 type DLPRule struct {
 	ID                       int       `json:"id,omitempty"`
@@ -764,6 +782,11 @@ type Zurl interface {
 // Zid is the interface for tyopes that can return ID, so most of them
 type Zid interface {
 	GetID() (string, int)
+}
+
+// Zid is the interface for tyopes that can return ID as string
+type ZidString interface {
+	GetUUID() (string, string)
 }
 
 // ZDelete interfaces for objects with delete function
@@ -922,6 +945,7 @@ func (c *Client) AddUrlRule(rule UrlRule) (int, error) {
 	if rule.Rank == 0 {
 		rule.Rank = 7
 	}
+	rule.ID = 0
 	postBody, _ := json.Marshal(rule)
 	body, err := c.postRequest("/urlFilteringRules", postBody)
 	if err != nil {
@@ -1698,6 +1722,18 @@ func GetIDs[K Zid](obj []K) map[string]int {
 	//Iterating
 	for _, v := range obj {
 		name, id := v.GetID()
+		m[name] = id
+	}
+	return m
+}
+
+// GetCbiIDs receives an array object and returns a map with the name as key and ID (string) as value
+func GetUUIDs[K ZidString](obj []K) map[string]string {
+	//Creating map
+	m := make(map[string]string)
+	//Iterating
+	for _, v := range obj {
+		name, id := v.GetUUID()
 		m[name] = id
 	}
 	return m
