@@ -785,8 +785,8 @@ type Zid interface {
 }
 
 // Zid is the interface for tyopes that can return ID as string
-type ZidString interface {
-	GetUUID() (string, string)
+type ZSid interface {
+	GetID() (string, string)
 }
 
 // ZDelete interfaces for objects with delete function
@@ -1727,13 +1727,14 @@ func GetIDs[K Zid](obj []K) map[string]int {
 	return m
 }
 
-// GetCbiIDs receives an array object and returns a map with the name as key and ID (string) as value
-func GetUUIDs[K ZidString](obj []K) map[string]string {
+
+// GetSIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
+func GetSIDs[K ZSid](obj []K) map[string]string {
 	//Creating map
 	m := make(map[string]string)
 	//Iterating
 	for _, v := range obj {
-		name, id := v.GetUUID()
+		name, id := v.GetID()
 		m[name] = id
 	}
 	return m
