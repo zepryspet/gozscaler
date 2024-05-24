@@ -41,7 +41,7 @@ type Client struct {
 
 // UrlRule parses responses for urls policies
 type UrlRule struct {
-	ID                     int        `json:"id"`
+	ID                     int        `json:"id,omitempty"`
 	Name                   string     `json:"name"`
 	Order                  int        `json:"order,omitempty"`
 	Protocols              []string   `json:"protocols,omitempty"`
@@ -72,14 +72,14 @@ type UrlRule struct {
 	EnforceTimeValidity    bool       `json:"enforceTimeValidity,omitempty"`
 	Action                 string     `json:"action,omitempty"`
 	Ciparule               bool       `json:"ciparule,omitempty"`
+	UserAgentTypes         []string   `json:"userAgentTypes,omitempty"`
 	CbiProfile             CbiProfile `json:"cbiProfile,omitempty"`
 }
 
 type CbiProfile struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	URL            string `json:"url"`
-	DefaultProfile bool   `json:"defaultProfile"`
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	URL  string `json:"url,omitempty"`
 }
 
 // String prints the struct in json pretty format
@@ -106,6 +106,11 @@ type NameID struct {
 	ID   int    `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 	Uuid string `json:"uuid,omitempty"`
+}
+
+type NameStringID struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 // AppGroup parses network application groups
@@ -686,6 +691,11 @@ func (p ICAPServer) String() string {
 	return jsonString(p)
 }
 
+// GetID return the name a string and the ID as string
+func (u CbiProfile) GetUUIDs() (string, string) {
+	return u.Name, u.ID
+}
+
 // DLPRule holds a DLP rule information
 type DLPRule struct {
 	ID                       int       `json:"id,omitempty"`
@@ -935,6 +945,7 @@ func (c *Client) AddUrlRule(rule UrlRule) (int, error) {
 	if rule.Rank == 0 {
 		rule.Rank = 7
 	}
+	rule.ID = 0
 	postBody, _ := json.Marshal(rule)
 	body, err := c.postRequest("/urlFilteringRules", postBody)
 	if err != nil {
@@ -1715,6 +1726,7 @@ func GetIDs[K Zid](obj []K) map[string]int {
 	}
 	return m
 }
+
 
 // GetSIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
 func GetSIDs[K ZSid](obj []K) map[string]string {
