@@ -41,37 +41,45 @@ type Client struct {
 
 // UrlRule parses responses for urls policies
 type UrlRule struct {
-	ID                     int      `json:"id"`
-	Name                   string   `json:"name"`
-	Order                  int      `json:"order,omitempty"`
-	Protocols              []string `json:"protocols,omitempty"`
-	Locations              []NameID `json:"locations,omitempty"`
-	Groups                 []NameID `json:"groups,omitempty"`
-	Departments            []NameID `json:"departments,omitempty"`
-	Users                  []NameID `json:"users,omitempty"`
-	URLCategories          []string `json:"urlCategories,omitempty"`
-	State                  string   `json:"state,omitempty"` //"ENABLED" or "DISABLED"
-	TimeWindows            []NameID `json:"timeWindows,omitempty"`
-	SourceIpGroups         []NameID `json:"sourceIpGroups,omitempty"`
-	Rank                   int      `json:"rank"`
-	RequestMethods         []string `json:"requestMethods,omitempty"`
-	EndUserNotificationURL string   `json:"endUserNotificationUrl,omitempty"`
-	OverrideUsers          []NameID `json:"overrideUsers,omitempty"`
-	OverrideGroups         []NameID `json:"overrideGroups,omitempty"`
-	BlockOverride          bool     `json:"blockOverride,omitempty"`
-	TimeQuota              int      `json:"timeQuota,omitempty"`
-	SizeQuota              int      `json:"sizeQuota,omitempty"`
-	Description            string   `json:"description,omitempty"`
-	LocationGroups         []NameID `json:"locationGroups,omitempty"`
-	Labels                 []NameID `json:"labels,omitempty"`
-	ValidityStartTime      int      `json:"validityStartTime,omitempty"`
-	ValidityEndTime        int      `json:"validityEndTime,omitempty"`
-	ValidityTimeZoneID     string   `json:"validityTimeZoneId,omitempty"`
-	LastModifiedTime       int      `json:"lastModifiedTime,omitempty"`
-	LastModifiedBy         *NameID  `json:"lastModifiedBy,omitempty"`
-	EnforceTimeValidity    bool     `json:"enforceTimeValidity,omitempty"`
-	Action                 string   `json:"action,omitempty"`
-	Ciparule               bool     `json:"ciparule,omitempty"`
+	ID                     int        `json:"id"`
+	Name                   string     `json:"name"`
+	Order                  int        `json:"order,omitempty"`
+	Protocols              []string   `json:"protocols,omitempty"`
+	Locations              []NameID   `json:"locations,omitempty"`
+	Groups                 []NameID   `json:"groups,omitempty"`
+	Departments            []NameID   `json:"departments,omitempty"`
+	Users                  []NameID   `json:"users,omitempty"`
+	URLCategories          []string   `json:"urlCategories,omitempty"`
+	State                  string     `json:"state,omitempty"` //"ENABLED" or "DISABLED"
+	TimeWindows            []NameID   `json:"timeWindows,omitempty"`
+	SourceIpGroups         []NameID   `json:"sourceIpGroups,omitempty"`
+	Rank                   int        `json:"rank"`
+	RequestMethods         []string   `json:"requestMethods,omitempty"`
+	EndUserNotificationURL string     `json:"endUserNotificationUrl,omitempty"`
+	OverrideUsers          []NameID   `json:"overrideUsers,omitempty"`
+	OverrideGroups         []NameID   `json:"overrideGroups,omitempty"`
+	BlockOverride          bool       `json:"blockOverride,omitempty"`
+	TimeQuota              int        `json:"timeQuota,omitempty"`
+	SizeQuota              int        `json:"sizeQuota,omitempty"`
+	Description            string     `json:"description,omitempty"`
+	LocationGroups         []NameID   `json:"locationGroups,omitempty"`
+	Labels                 []NameID   `json:"labels,omitempty"`
+	ValidityStartTime      int        `json:"validityStartTime,omitempty"`
+	ValidityEndTime        int        `json:"validityEndTime,omitempty"`
+	ValidityTimeZoneID     string     `json:"validityTimeZoneId,omitempty"`
+	LastModifiedTime       int        `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy         *NameID    `json:"lastModifiedBy,omitempty"`
+	EnforceTimeValidity    bool       `json:"enforceTimeValidity,omitempty"`
+	Action                 string     `json:"action,omitempty"`
+	Ciparule               bool       `json:"ciparule,omitempty"`
+	CbiProfile             CbiProfile `json:"cbiProfile,omitempty"`
+}
+
+type CbiProfile struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	URL            string `json:"url"`
+	DefaultProfile bool   `json:"defaultProfile"`
 }
 
 // String prints the struct in json pretty format
@@ -764,6 +772,11 @@ type Zurl interface {
 // Zid is the interface for tyopes that can return ID, so most of them
 type Zid interface {
 	GetID() (string, int)
+}
+
+// Zid is the interface for tyopes that can return ID as string
+type ZSid interface {
+	GetID() (string, string)
 }
 
 // ZDelete interfaces for objects with delete function
@@ -1695,6 +1708,18 @@ func getPagedQuery[K any](c *Client, pageSize int, path string, queries url.Valu
 func GetIDs[K Zid](obj []K) map[string]int {
 	//Creating map
 	m := make(map[string]int)
+	//Iterating
+	for _, v := range obj {
+		name, id := v.GetID()
+		m[name] = id
+	}
+	return m
+}
+
+// GetSIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
+func GetSIDs[K ZSid](obj []K) map[string]string {
+	//Creating map
+	m := make(map[string]string)
 	//Iterating
 	for _, v := range obj {
 		name, id := v.GetID()
