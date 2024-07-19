@@ -34,6 +34,7 @@ func (e *ZIAError) Error() string {
 // Client contains the base url, http client and max number of retries per requests
 type Client struct {
 	BaseURL    string
+	SanboxUrl  string
 	HTTPClient *http.Client
 	RetryMax   int
 	Log        *slog.Logger
@@ -653,6 +654,17 @@ func (p DLPEngine) String() string {
 	return jsonString(p)
 }
 
+// Sandbox response
+type Sandbox struct {
+	Code              string `json:"code"`
+	Message           string `json:"message"`
+	FileType          string `json:"fileType"`
+	Md5               string `json:"md5"`
+	SandboxSubmission string `json:"sandboxSubmission"`
+	VirusName         string `json:"virusName"`
+	VirusType         string `json:"virusType"`
+}
+
 // DLPNotificationTemplate hols dlp notification template details
 type DLPNotificationTemplate struct {
 	ID               int    `json:"id,omitempty"`
@@ -890,6 +902,7 @@ func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Cl
 	if err != nil {
 		return &Client{}, &ZIAError{Err: "failed to parse API URL"}
 	}
+	SanboxUrl := "https://csbapi." + cloud + ".net/zscsb/"
 	CookieJar.SetCookies(u, cookie)
 	opts := &slog.HandlerOptions{} //level info by default
 	if level == "DEBUG" {
@@ -899,10 +912,11 @@ func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Cl
 	child := parent.With(slog.String("module", "gozscaler"),
 		slog.String("client", "zia"))
 	return &Client{
-		BaseURL: BaseURL,
+		BaseURL:   BaseURL,
+		SanboxUrl: SanboxUrl,
 		HTTPClient: &http.Client{
 			Jar:     CookieJar,
-			Timeout: time.Second * 20,
+			Timeout: time.Second * 200,
 		},
 		RetryMax: 10,
 		Log:      child,
@@ -957,6 +971,65 @@ func (c *Client) AddUrlRule(rule UrlRule) (int, error) {
 		return 0, err
 	}
 	return res.ID, nil
+}
+
+// AddSandbox adds a file for sandbox analysis
+func (c *Client) AddSandbox(file io.Reader, api string, force bool) (Sandbox, error) {
+	v := url.Values{}
+	if force {
+		v.Set("force", "1")
+	} else {
+		v.Set("force", "0")
+	}
+	v.Add("api_token", api)
+	path := "submit?" + v.Encode()
+	if file == nil {
+		return Sandbox{}, fmt.Errorf("invalid file")
+	}
+	body, err := c.postRequestSandbox(path, file)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	b, err := io.ReadAll(body)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	res := Sandbox{}
+	err = json.Unmarshal(b, &res)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	return res, nil
+}
+
+// AddSandbox adds a file for sandbox analysis
+func (c *Client) GetSandbox(file io.Reader, md5 string) (io.Reader, error) {
+	path := "/sandbox/report/" + md5
+	return c.postRequestSandbox(path, file)
+}
+
+// AddSandbox adds a file for sandbox analysis
+func (c *Client) AddSandboxQuick(file io.Reader, api string) (Sandbox, error) {
+	v := url.Values{}
+	v.Add("api_token", api)
+	path := "submit?" + v.Encode()
+	if file == nil {
+		return Sandbox{}, fmt.Errorf("invalid file")
+	}
+	body, err := c.postRequestSandbox(path, file)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	b, err := io.ReadAll(body)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	res := Sandbox{}
+	err = json.Unmarshal(b, &res)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	return res, nil
 }
 
 // UpdateUrlRule updates the user info using the provided user object
@@ -1727,7 +1800,6 @@ func GetIDs[K Zid](obj []K) map[string]int {
 	return m
 }
 
-
 // GetSIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
 func GetSIDs[K ZSid](obj []K) map[string]string {
 	//Creating map
@@ -1748,6 +1820,22 @@ func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 		return nil, err
 	}
 	return c.do(req)
+}
+
+// postRequestSandbox Process and sends HTTP POST requests
+func (c *Client) postRequestSandbox(path string, data io.Reader) (io.Reader, error) {
+	resp, err := c.HTTPClient.Post(c.SanboxUrl+path, "application/pdf", data)
+	if err != nil {
+		return nil, err
+	}
+	// Catch all when there's no more retries left
+	err = httpStatusCheck(resp)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return resp.Body, nil
 }
 
 // getRequest Process and sends HTTP GET requests
