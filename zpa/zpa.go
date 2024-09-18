@@ -729,8 +729,37 @@ func (obj Policy) GetID() (string, string) {
 
 // PagedResponse parses http response from a paged GET request. List will be parsed later to the right object
 type PagedResponse struct {
-	Pages string          `json:"totalPages"`
+	Pages Number          `json:"totalPages"`
 	List  json.RawMessage `json:"list"`
+}
+
+// Number unmarshalls as string or int, and marshal as int
+type Number string
+
+// UnmarshalJSON unmarshalls as string or int
+func (u *Number) UnmarshalJSON(data []byte) error {
+	var tmp string
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		//unmarshall as int
+		var n int
+		err1 := json.Unmarshal(data, &n)
+		if err1 != nil {
+			return err1
+		}
+		*u = Number(strconv.Itoa(n))
+		return nil
+	}
+	*u = Number(tmp)
+	return nil
+}
+
+func (n Number) Int() (int, error) {
+	return strconv.Atoi(string(n))
+}
+
+func (n Number) String() string {
+	return string(n)
 }
 
 // Creating object interface for ZPA objects that can be created with a Post request
@@ -754,34 +783,34 @@ type IDP struct {
 		SpMetadataURL  string `json:"spMetadataUrl,omitempty"`
 		SpPostURL      string `json:"spPostUrl,omitempty"`
 	} `json:"adminMetadata,omitempty"`
-	AdminSpSigningCertID int `json:"adminSpSigningCertId,omitempty"`
-	AutoProvision        int `json:"autoProvision,omitempty"`
+	AdminSpSigningCertID string `json:"adminSpSigningCertId,omitempty"`
+	AutoProvision        string `json:"autoProvision,omitempty"`
 	Certificates         []struct {
 		CName          string `json:"cName,omitempty"`
 		Certificate    string `json:"certificate,omitempty"`
 		SerialNo       string `json:"serialNo,omitempty"`
-		ValidFromInSec int    `json:"validFromInSec,omitempty"`
-		ValidToInSec   int    `json:"validToInSec,omitempty"`
+		ValidFromInSec string `json:"validFromInSec,omitempty"`
+		ValidToInSec   string `json:"validToInSec,omitempty"`
 	} `json:"certificates,omitempty"`
-	CreationTime                int      `json:"creationTime,omitempty"`
+	CreationTime                string   `json:"creationTime,omitempty"`
 	Description                 string   `json:"description,omitempty"`
 	DisableSamlBasedPolicy      bool     `json:"disableSamlBasedPolicy,omitempty"`
 	DomainList                  []string `json:"domainList,omitempty"`
 	EnableScimBasedPolicy       bool     `json:"enableScimBasedPolicy,omitempty"`
 	Enabled                     bool     `json:"enabled,omitempty"`
-	ID                          int      `json:"id,omitempty"`
+	ID                          string   `json:"id,omitempty"`
 	IdpEntityID                 string   `json:"idpEntityId,omitempty"`
 	LoginNameAttribute          string   `json:"loginNameAttribute,omitempty"`
 	LoginURL                    string   `json:"loginUrl,omitempty"`
-	ModifiedBy                  int      `json:"modifiedBy,omitempty"`
-	ModifiedTime                int      `json:"modifiedTime,omitempty"`
+	ModifiedBy                  string   `json:"modifiedBy,omitempty"`
+	ModifiedTime                string   `json:"modifiedTime,omitempty"`
 	Name                        string   `json:"name,omitempty"`
 	ReauthOnUserUpdate          bool     `json:"reauthOnUserUpdate,omitempty"`
 	RedirectBinding             bool     `json:"redirectBinding,omitempty"`
 	ScimEnabled                 bool     `json:"scimEnabled,omitempty"`
 	ScimServiceProviderEndpoint string   `json:"scimServiceProviderEndpoint,omitempty"`
 	ScimSharedSecretExists      bool     `json:"scimSharedSecretExists,omitempty"`
-	SignSamlRequest             int      `json:"signSamlRequest,omitempty"`
+	SignSamlRequest             string   `json:"signSamlRequest,omitempty"`
 	SsoType                     []string `json:"ssoType,omitempty"`
 	UseCustomSPMetadata         bool     `json:"useCustomSPMetadata,omitempty"`
 	UserMetadata                struct {
@@ -791,7 +820,7 @@ type IDP struct {
 		SpMetadataURL  string `json:"spMetadataUrl,omitempty"`
 		SpPostURL      string `json:"spPostUrl,omitempty"`
 	} `json:"userMetadata,omitempty"`
-	UserSpSigningCertID int `json:"userSpSigningCertId,omitempty"`
+	UserSpSigningCertID string `json:"userSpSigningCertId,omitempty"`
 }
 
 // String prints the struct in json pretty format
@@ -803,13 +832,13 @@ func (p IDP) String() string {
 type SCIMAttr struct {
 	CanonicalValues []string `json:"canonicalValues"`
 	CaseSensitive   bool     `json:"caseSensitive,omitempty"`
-	CreationTime    int      `json:"creationTime,omitempty"`
+	CreationTime    string   `json:"creationTime,omitempty"`
 	DataType        string   `json:"dataType,omitempty"`
 	Description     string   `json:"description,omitempty"`
-	ID              int      `json:"id,omitempty"`
-	IdpID           int      `json:"idpId,omitempty"`
-	ModifiedBy      int      `json:"modifiedBy,omitempty"`
-	ModifiedTime    int      `json:"modifiedTime,omitempty"`
+	ID              string   `json:"id,omitempty"`
+	IdpID           string   `json:"idpId,omitempty"`
+	ModifiedBy      string   `json:"modifiedBy,omitempty"`
+	ModifiedTime    string   `json:"modifiedTime,omitempty"`
 	Multivalued     bool     `json:"multivalued,omitempty"`
 	Mutability      string   `json:"mutability,omitempty"`
 	Name            string   `json:"name"`
@@ -823,7 +852,7 @@ type SCIMAttr struct {
 type SCIMGroup struct {
 	CreationTime int    `json:"creationTime,omitempty"`
 	ID           int    `json:"id,omitempty"`
-	IdpGroupID   string `json:"idpGroupId,omitempty"`
+	IdpGroupID   int    `json:"idpGroupId,omitempty"`
 	IdpID        int    `json:"idpId,omitempty"`
 	ModifiedTime int    `json:"modifiedTime,omitempty"`
 	Name         string `json:"name,omitempty"`
@@ -1106,18 +1135,18 @@ func (c *Client) GetSCIMAttributes(idpID string) ([]SCIMAttr, error) {
 }
 
 // GetSCIMAttrValues gets a list of the scim attributes values for a given attribute
-func (c *Client) GetSCIMAttrValues(idpID string, attributeID string) ([]string, error) {
-	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/idp/" + idpID + "/attributeID/" + attributeID
+func (c *Client) GetSCIMAttrValues(idpID, attributeID string) ([]string, error) {
+	path := "/userconfig/v1/customers/" + c.CustomerId + "/scimattribute/idpId/" + idpID + "/attributeId/" + attributeID
 	return GetPaged(c, 500, path, []string{})
 }
 
 // GetSCIMGroups gets a list of the scim attributes values for a given attribute
 func (c *Client) GetSCIMGroups(idpID string) ([]SCIMGroup, error) {
-	path := "/mgmtconfig/v1/admin/customers/" + c.CustomerId + "/scimgroup/idp/" + idpID
+	path := "/userconfig/v1/customers/" + c.CustomerId + "/scimgroup/idpId/" + idpID
 	return GetPaged(c, 500, path, []SCIMGroup{})
 }
 
-// GetSCIMGroups gets a list of the scim attributes values for a given attribute
+// GetPostureProfiles gets a list of the scim attributes values for a given attribute
 func (c *Client) GetPostureProfiles() ([]PostureProfile, error) {
 	path := "/mgmtconfig/v2/admin/customers/" + c.CustomerId + "/posture"
 	return GetPaged(c, 500, path, []PostureProfile{})
@@ -1219,7 +1248,7 @@ func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error)
 		}
 		obj = append(obj, tmp...)
 		//Getting total pages and checking which page we're iterating with
-		tpage, err := strconv.Atoi(res.Pages)
+		tpage, err := res.Pages.Int()
 		if err != nil {
 			return obj, err
 		}
