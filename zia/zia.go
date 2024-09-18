@@ -34,6 +34,7 @@ func (e *ZIAError) Error() string {
 // Client contains the base url, http client and max number of retries per requests
 type Client struct {
 	BaseURL    string
+	SanboxUrl  string
 	HTTPClient *http.Client
 	RetryMax   int
 	Log        *slog.Logger
@@ -481,6 +482,21 @@ func (p UserGroup) String() string {
 	return jsonString(p)
 }
 
+// delUsers struct used to delte users.
+type delUsers struct {
+	Ids []int `json:"ids"`
+}
+
+// Append the element
+func (u *delUsers) Append(e []int) {
+	u.Ids = append(u.Ids, e...)
+}
+
+// Get returns the elements
+func (u *delUsers) Get() []int {
+	return u.Ids
+}
+
 // Users parses Users
 type User struct {
 	ID            int         `json:"id,omitempty"`
@@ -503,6 +519,11 @@ func (u User) GetID() (string, int) {
 // String prints the struct in json pretty format
 func (p User) String() string {
 	return jsonString(p)
+}
+
+// Delete deletes an object
+func (u User) Delete(c *Client) error {
+	return c.DeleteUser(u.ID)
 }
 
 // BlockedUrls parses responses for blocked urls
@@ -651,6 +672,17 @@ func (u DLPEngine) GetDictionaries() []int {
 // String prints the struct in json pretty format
 func (p DLPEngine) String() string {
 	return jsonString(p)
+}
+
+// Sandbox response
+type Sandbox struct {
+	Code              int    `json:"code"`
+	Message           string `json:"message"`
+	FileType          string `json:"fileType"`
+	Md5               string `json:"md5"`
+	SandboxSubmission string `json:"sandboxSubmission"`
+	VirusName         string `json:"virusName"`
+	VirusType         string `json:"virusType"`
 }
 
 // DLPNotificationTemplate hols dlp notification template details
@@ -878,6 +910,10 @@ func NewClient(cloud string, admin string, pass string, apiKey string) (*Client,
 // New client logger creates a new cliente with a custom slog logger
 func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Client, error) {
 	BaseURL := "https://zsapi." + cloud + ".net/api/v1"
+	u, err := url.Parse(BaseURL)
+	if err != nil {
+		return &Client{}, &ZIAError{Err: "failed to parse API URL"}
+	}
 	cookie, err := KeyGen(BaseURL, admin, pass, apiKey)
 	if err != nil {
 		return &Client{}, fmt.Errorf("module:gozscaler. error login with username: %v, error:%v", admin, err)
@@ -886,10 +922,7 @@ func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Cl
 	if err != nil {
 		return &Client{}, &ZIAError{Err: "failed to set authentication cookie"}
 	}
-	u, err := url.Parse(BaseURL)
-	if err != nil {
-		return &Client{}, &ZIAError{Err: "failed to parse API URL"}
-	}
+	SanboxUrl := "https://csbapi." + cloud + ".net/zscsb/"
 	CookieJar.SetCookies(u, cookie)
 	opts := &slog.HandlerOptions{} //level info by default
 	if level == "DEBUG" {
@@ -899,10 +932,11 @@ func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Cl
 	child := parent.With(slog.String("module", "gozscaler"),
 		slog.String("client", "zia"))
 	return &Client{
-		BaseURL: BaseURL,
+		BaseURL:   BaseURL,
+		SanboxUrl: SanboxUrl,
 		HTTPClient: &http.Client{
 			Jar:     CookieJar,
-			Timeout: time.Second * 20,
+			Timeout: time.Second * 200,
 		},
 		RetryMax: 10,
 		Log:      child,
@@ -957,6 +991,33 @@ func (c *Client) AddUrlRule(rule UrlRule) (int, error) {
 		return 0, err
 	}
 	return res.ID, nil
+}
+
+// AddSandbox adds a file for sandbox analysis
+func (c *Client) AddSandbox(file io.Reader, api string, force bool, ContentLength int64) (Sandbox, error) {
+	v := url.Values{}
+	if force {
+		v.Set("force", "1")
+	} else {
+		v.Set("force", "0")
+	}
+	v.Add("api_token", api)
+	path := "submit?" + v.Encode()
+	if file == nil {
+		return Sandbox{}, fmt.Errorf("invalid file")
+	}
+	return c.postRequestSandbox(path, file, ContentLength)
+}
+
+// AddSandbox adds a file for sandbox analysis
+func (c *Client) AddSandboxQuick(file io.Reader, api string, ContentLength int64) (Sandbox, error) {
+	v := url.Values{}
+	v.Add("api_token", api)
+	path := "submit?" + v.Encode()
+	if file == nil {
+		return Sandbox{}, fmt.Errorf("invalid file")
+	}
+	return c.postRequestSandbox(path, file, ContentLength)
 }
 
 // UpdateUrlRule updates the user info using the provided user object
@@ -1262,6 +1323,35 @@ func (c *Client) GetUser(id int) (User, error) {
 		return res, err
 	}
 	return res, nil
+}
+
+// DeleteUser deletes a user
+func (c *Client) DeleteUser(id int) error {
+	return c.deleteRequest("/users/" + strconv.Itoa(id))
+}
+
+// DeleteUses deletes users in bulk
+// return deleted users as []int, and err for http errors
+func (c *Client) DeleteUsers(uIds []int) ([]int, error) {
+	res := delUsers{}
+	//Transforming into chunks of 500 (max per bulkd delete)
+	chunks := chunkBy(uIds, 500)
+	for _, chk := range chunks {
+		r := delUsers{Ids: chk}
+		postBody, _ := json.Marshal(r)
+		body, err := c.postRequest("/users/bulkDelete", postBody)
+		if err != nil {
+			return res.Get(), err
+		}
+		tmp := delUsers{}
+		err = json.Unmarshal(body, &tmp)
+		if err != nil {
+			return res.Get(), err
+		}
+		//append
+		res.Append(tmp.Ids)
+	}
+	return res.Get(), nil
 }
 
 // GetUsersPaged allows you to request between 100 and 1000 items
@@ -1727,7 +1817,6 @@ func GetIDs[K Zid](obj []K) map[string]int {
 	return m
 }
 
-
 // GetSIDs is a generic function that receives an arrray object and return a map with the name as key and ID as value
 func GetSIDs[K ZSid](obj []K) map[string]string {
 	//Creating map
@@ -1748,6 +1837,51 @@ func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 		return nil, err
 	}
 	return c.do(req)
+}
+
+// postRequestSandbox Process and sends HTTP POST requests
+func (c *Client) postRequestSandbox(path string, data io.Reader, ContentLength int64) (Sandbox, error) {
+	buf := make([]byte, 512) // Read first 512 bytes
+	_, err := io.ReadAtLeast(data, buf, 512)
+	if err != nil {
+		return Sandbox{}, fmt.Errorf("couldn't file detect content type: %v", err)
+	}
+	contentType := http.DetectContentType(buf)
+	//buf := bufio.NewReader(data)
+	//sniff, _ := buf.Peek(512)
+	//contentType := http.DetectContentType(sniff)
+	r, err := http.NewRequest("POST", c.SanboxUrl+path, io.MultiReader(bytes.NewReader(buf), data))
+	//r, err := http.NewRequest("POST", c.SanboxUrl+path, data)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	r.Header.Add("Content-Type", contentType) //"application/pdf"
+	r.ContentLength = ContentLength
+	//r.Header.Add("Content-Length", "16047202")
+	resp, err := c.HTTPClient.Do(r)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	defer resp.Body.Close()
+	// Catch all when there's no more retries left
+	err = httpStatusCheck(resp)
+	if err != nil {
+		return Sandbox{}, err
+	}
+
+	if err != nil {
+		return Sandbox{}, err
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	res := Sandbox{}
+	err = json.Unmarshal(b, &res)
+	if err != nil {
+		return Sandbox{}, err
+	}
+	return res, nil
 }
 
 // getRequest Process and sends HTTP GET requests
@@ -1990,4 +2124,12 @@ func (c *Client) deleteRequest(path string) error {
 	}
 	_, err = c.do(req)
 	return err
+}
+
+// chunkBy split slices in chunks
+func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
+	for chunkSize < len(items) {
+		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
+	}
+	return append(chunks, items)
 }
