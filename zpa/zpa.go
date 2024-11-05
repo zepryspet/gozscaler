@@ -1241,7 +1241,7 @@ func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error)
 			return obj, nil
 		}
 		//Creating tmp struct to unmarshal to.
-		tmp := obj
+		var tmp []K
 		//Unmarshall List into object
 		err = json.Unmarshal(res.List, &tmp)
 		if err != nil {
