@@ -1224,8 +1224,6 @@ func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error)
 	var res PagedResponse
 	//Setting the 1st page number
 	page := 1
-	//Creating tmp struct to unmarshal to.
-	tmp := obj
 	//iterating over all pages to get all
 	for {
 		npath := path + "?page=" + strconv.Itoa(page) + "&pagesize=" + strconv.Itoa(pageSize)
@@ -1238,10 +1236,12 @@ func GetPaged[K any](c *Client, pageSize int, path string, obj []K) ([]K, error)
 		if err != nil {
 			return obj, err
 		}
-		//Return if pages == 0, meaning there are no objects return empty list and no erro
+		//Return if pages == 0, meaning there are no objects return empty list and no error
 		if res.Pages == "0" {
 			return obj, nil
 		}
+		//Creating tmp struct to unmarshal to.
+		var tmp []K
 		//Unmarshall List into object
 		err = json.Unmarshal(res.List, &tmp)
 		if err != nil {
