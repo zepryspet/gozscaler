@@ -852,10 +852,11 @@ type SCIMAttr struct {
 type SCIMGroup struct {
 	CreationTime int    `json:"creationTime,omitempty"`
 	ID           int    `json:"id,omitempty"`
-	IdpGroupID   int    `json:"idpGroupId,omitempty"`
+	IdpGroupID   string `json:"idpGroupId,omitempty"`
 	IdpID        int    `json:"idpId,omitempty"`
 	ModifiedTime int    `json:"modifiedTime,omitempty"`
 	Name         string `json:"name,omitempty"`
+	InternalID   string `json:"internalId,omitempty"`
 }
 
 // PostureProfile holds the configured posture profiles
