@@ -857,6 +857,7 @@ type SCIMGroup struct {
 	IdpName      string `json:"idpName,omitempty"`
 	ModifiedTime int    `json:"modifiedTime,omitempty"`
 	Name         string `json:"name,omitempty"`
+	InternalID   string `json:"internalId,omitempty"`
 }
 
 // PostureProfile holds the configured posture profiles
