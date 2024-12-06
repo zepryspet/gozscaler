@@ -19,7 +19,7 @@ import (
 
 // Client contains the base url, http client and max number of retries per request.
 // It also includes ZPA info like customerID
-// And policy IDs for
+// And policy Uuids for
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
@@ -404,7 +404,7 @@ func (obj *ServerGroup) ResetID(m map[string]string) bool {
 	obj.AppConnectorGroups = connGrp
 	//Checking Servers
 	for _, v := range obj.Servers {
-		//Adding only IDs
+		//Adding only Uuids
 		v.ResetID(m)
 		server = append(server, v)
 	}
@@ -680,7 +680,7 @@ func (obj *Policy) ResetID(m map[string]string) bool {
 	for _, v := range obj.Conditions {
 		condi := v
 		var operands []PolicyOperands
-		//it seems that only RHS IDs need to be changed. other IDs don't seem to fall under global IDs
+		//it seems that only RHS Uuids need to be changed. other Uuids don't seem to fall under global Uuids
 		for _, v := range v.Operands {
 			//RHS is the ID for the following types.
 			//https://help.zscaler.com/zpa/access-policy-use-cases
@@ -768,10 +768,10 @@ type ObjectCreate interface {
 	Create(*Client) (string, error)
 }
 
-// Resettable Pointer allows to modify object and delete invalid references to non existing object IDs
+// Resettable Pointer allows to modify object and delete invalid references to non existing object Uuids
 type Resettable[B any] interface {
 	*B                              // non-interface type constraint element
-	ResetID(map[string]string) bool // Resets IDs inside element bases on old, new map ID and returns true if it's own ID was modified
+	ResetID(map[string]string) bool // Resets Uuids inside element bases on old, new map ID and returns true if it's own ID was modified
 }
 
 // IDP holds the idp information
@@ -862,16 +862,22 @@ type SCIMGroup struct {
 
 // PostureProfile holds the configured posture profiles
 type PostureProfile struct {
-	CreationTime      int    `json:"creationTime,omitempty"`
-	Domain            string `json:"domain,omitempty"`
-	ID                int    `json:"id,omitempty"`
-	MasterCustomerID  string `json:"masterCustomerId,omitempty"`
-	ModifiedBy        int    `json:"modifiedBy,omitempty"`
-	ModifiedTime      int    `json:"modifiedTime,omitempty"`
-	Name              string `json:"name,omitempty"`
-	PostureUdid       string `json:"postureUdid,omitempty"`
-	ZscalerCloud      string `json:"zscalerCloud,omitempty"`
-	ZscalerCustomerID int    `json:"zscalerCustomerId,omitempty"`
+	ID                             string `json:"id,omitempty"`
+	Name                           string `json:"name,omitempty"`
+	ApplyToMachineTunnelEnabled    bool   `json:"applyToMachineTunnelEnabled"`
+	CRLCheckEnabled                bool   `json:"crlCheckEnabled"`
+	NonExportablePrivateKeyEnabled bool   `json:"nonExportablePrivateKeyEnabled"`
+	Platform                       string `json:"platform,omitempty"`
+	CreationTime                   string `json:"creationTime,omitempty"`
+	Domain                         string `json:"domain,omitempty"`
+	MasterCustomerID               string `json:"masterCustomerId,omitempty"`
+	ModifiedBy                     string `json:"modifiedBy,omitempty"`
+	ModifiedTime                   string `json:"modifiedTime,omitempty"`
+	PostureType                    string `json:"postureType,omitempty"`
+	PostureudID                    string `json:"postureUdid,omitempty"`
+	RootCert                       string `json:"rootCert,omitempty"`
+	ZscalerCloud                   string `json:"zscalerCloud,omitempty"`
+	ZscalerCustomerID              string `json:"zscalerCustomerId,omitempty"`
 }
 
 // String prints the struct in json pretty format
@@ -1455,7 +1461,7 @@ func NewClientBase(BaseURL, client_id, client_secret, CustomerId, level string, 
 }
 
 // NewClientBase returns a client with the auth header, default http timeouts and max retries per requests
-// In addition it adds the policy IDs for ZPA
+// In addition it adds the policy Uuids for ZPA
 func NewClient(BaseURL string, client_id string, client_secret string, CustomerId string) (*Client, error) {
 	//Getting a base client
 	c, err := NewClientBase(BaseURL, client_id, client_secret, CustomerId, os.Getenv("SLOG"), os.Stdout)
