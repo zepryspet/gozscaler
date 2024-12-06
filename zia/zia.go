@@ -650,7 +650,7 @@ func (u DLPEngine) Delete(c *Client) error {
 	return c.DeleteDLPEngine(u.ID)
 }
 
-// GetDictionaries returns dictionary IDs used on an engine
+// GetDictionaries returns dictionary Uuids used on an engine
 func (u DLPEngine) GetDictionaries() []int {
 	var m = make(map[int]bool)
 	var a = []int{}
