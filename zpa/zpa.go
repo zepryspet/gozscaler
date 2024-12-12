@@ -1350,11 +1350,11 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	}
 	//Before anything returns defering close body
 	defer resp.Body.Close()
-	if resp.StatusCode == 429 {
+	if resp.StatusCode == 429 || resp.StatusCode == 409 { //429 is rate limited and 409 is internal conflict sometimes triggered when you do things too fast.
 		// Retrying after X seconds only if you have retries left.
 		if retryMax > 0 {
 			s := time.Duration(retryAfter(retryMax, c.RetryMax)) * time.Second
-			c.Log.Info(fmt.Sprintf("received HTTP 429 waiting for %v seconds", s),
+			c.Log.Info(fmt.Sprintf("received HTTP %v waiting for %v seconds", resp.StatusCode, s),
 				slog.String("url", req.URL.String()),
 				slog.String("method", req.Method),
 				slog.String("retries left", fmt.Sprint(retryMax)),
