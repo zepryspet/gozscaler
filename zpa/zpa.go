@@ -1451,7 +1451,7 @@ func NewClientBase(BaseURL, client_id, client_secret, CustomerId, level string, 
 	return &Client{
 		BaseURL: BaseURL,
 		HTTPClient: &http.Client{
-			Timeout: time.Second * 10,
+			Timeout: time.Second * 200,
 		},
 		RetryMax:   10,
 		Token:      access_token,
