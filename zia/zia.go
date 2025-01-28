@@ -2056,7 +2056,7 @@ func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.C
 	}
 	data := bytes.NewBuffer(postBody)
 	client := http.Client{
-		Timeout: time.Second * 10,
+		Timeout: time.Second * 100,
 	}
 	resp, err := client.Post(BaseURL+"/authenticatedSession", "application/json", data)
 	if err != nil {

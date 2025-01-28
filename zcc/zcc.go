@@ -138,7 +138,7 @@ func Authenticate(base_url string, client_id string, secret_key string) (string,
 		return "", err
 	}
 	client := http.Client{
-		Timeout: time.Second * 10,
+		Timeout: time.Second * 100,
 	}
 	resp, err := client.Post(url, "application/json", bytes.NewBuffer(json_data))
 	if err != nil {

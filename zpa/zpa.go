@@ -1497,7 +1497,7 @@ func KeyGen(BaseURL string, client_id string, client_secret string) (string, err
 	form.Add("client_id", client_id)
 	form.Add("client_secret", client_secret)
 	client := http.Client{
-		Timeout: time.Second * 10,
+		Timeout: time.Second * 100,
 	}
 	resp, err := client.Post(BaseURL+"/signin", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
 	if err != nil {
