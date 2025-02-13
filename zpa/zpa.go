@@ -153,6 +153,8 @@ type AppSegment struct {
 	UDPPortRange         []PortRange      `json:"udpPortRange,omitempty"`
 	UDPPortRanges        []string         `json:"udpPortRanges,omitempty"`
 	SRAAppsDto           []SRAAppsDto     `json:"sraApps,omitempty"`
+	//multi match
+	MatchStyle string `json:"matchStyle,omitempty"`
 }
 
 type SRAAppsDto struct {
