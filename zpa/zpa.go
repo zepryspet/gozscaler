@@ -17,6 +17,21 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+// ZPAError is the error
+type ZPAError struct {
+	//this is the Error
+	Err string
+	//Code this is the http status code
+	Code int
+}
+
+func (e *ZPAError) Error() string {
+	if e.Code != 0 {
+		return e.Err + ", HTTP status code: " + strconv.Itoa(e.Code)
+	}
+	return e.Err
+}
+
 // Client contains the base url, http client and max number of retries per request.
 // It also includes ZPA info like customerID
 // And policy Uuids for
@@ -1416,17 +1431,17 @@ func httpStatusCheck(resp *http.Response) error {
 		return nil
 	} else if resp.StatusCode == 400 {
 		b, _ := io.ReadAll(resp.Body)
-		return errors.New("http error: Invalid or bad request. " + string(b))
+		return &ZPAError{Err: "HTTP error: Invalid or bad request" + string(b), Code: resp.StatusCode}
 	} else if resp.StatusCode == 401 {
-		return errors.New("http error: Session is not authenticated or timed out")
+		return &ZPAError{Err: "HTTP error: Session is not authenticated or timed out", Code: resp.StatusCode}
 	} else if resp.StatusCode == 403 {
-		return errors.New("http error: The API key was disabled by your service provider, User's role has no access permissions or functional scope or a required SKU subscription is missing")
+		return &ZPAError{Err: "HTTP error: The API key was disabled by your service provider, User's role has no access permissions or functional scope or a required SKU subscription is missing", Code: resp.StatusCode}
 	} else if resp.StatusCode == 404 {
-		return errors.New("not found")
+		return &ZPAError{Err: "not found", Code: resp.StatusCode}
 	} else if resp.StatusCode == 429 {
-		return errors.New("http error: exceeded the rate limit or quota")
+		return &ZPAError{Err: "HTTP error: Exceeded the rate limit or quota.", Code: resp.StatusCode}
 	} else {
-		return errors.New("invalid http response code: " + strconv.Itoa(resp.StatusCode))
+		return &ZPAError{Err: "Invalid HTTP response code", Code: resp.StatusCode}
 	}
 }
 
