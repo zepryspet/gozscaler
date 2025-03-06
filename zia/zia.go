@@ -299,6 +299,12 @@ type Service struct {
 	Description   string     `json:"description,omitempty"`
 	IsNameL10NTag bool       `json:"isNameL10nTag,omitempty"`
 }
+type Application struct {
+	ID             int    `json:"id"`
+	ParentCategory string `json:"parentCategory"`
+	Description    string `json:"description,omitempty"`
+	Deprecated     bool   `json:"deprecated,omitempty"`
+}
 
 // GetID return the name a string and the ID as int
 func (u Service) GetID() (string, int) {
@@ -1204,6 +1210,19 @@ func (c *Client) GetServices() ([]Service, error) {
 		return nil, err
 	}
 	res := []Service{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (c *Client) GetApplications() ([]Application, error) {
+	body, err := c.getRequest("/networkApplications")
+	if err != nil {
+		return nil, err
+	}
+	res := []Application{}
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
