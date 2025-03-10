@@ -40,6 +40,60 @@ type Client struct {
 	Log        *slog.Logger
 }
 
+type DnsRule struct {
+	Action              string   `json:"action"`
+	CapturePCAP         bool     `json:"capturePCAP,omitempty"`
+	BlockResponseCode   string   `json:"blockResponseCode,omitempty"`
+	AccessControl       string   `json:"accessControl,omitempty"`
+	ID                  int      `json:"id,omitempty"`
+	Name                string   `json:"name"`
+	Order               int      `json:"order,omitempty"`
+	Rank                int      `json:"rank,omitempty"`
+	Description         string   `json:"description,omitempty"`
+	Locations           []NameID `json:"locations,omitempty"`
+	LocationGroups      []NameID `json:"locationGroups,omitempty"`
+	Groups              []NameID `json:"groups,omitempty"`
+	Departments         []NameID `json:"departments,omitempty"`
+	Users               []NameID `json:"users,omitempty"`
+	Protocols           []string `json:"protocols,omitempty"`
+	State               string   `json:"state,omitempty"`
+	TimeWindows         []NameID `json:"timeWindows,omitempty"`
+	SrcIps              []string `json:"srcIps,omitempty"`
+	SrcIPGroups         []NameID `json:"srcIpGroups,omitempty"`
+	SrcIpv6Groups       []NameID `json:"srcIpv6Groups,omitempty"`
+	DestAddresses       []string `json:"destAddresses,omitempty"`
+	DestIPGroups        []NameID `json:"destIpGroups,omitempty"`
+	DestIpv6Groups      []NameID `json:"destIpv6Groups,omitempty"`
+	DestCountries       []string `json:"destCountries,omitempty"`
+	SourceCountries     []string `json:"sourceCountries,omitempty"`
+	DestIPCategories    []string `json:"destIpCategories,omitempty"`
+	ResCategories       []string `json:"resCategories,omitempty"`
+	RedirectIP          string   `json:"redirectIp,omitempty"`
+	Applications        []string `json:"applications,omitempty"`
+	ApplicationGroups   []NameID `json:"applicationGroups,omitempty"`
+	DNSGateway          *NameID  `json:"dnsGateway,omitempty"`
+	DNSRuleRequestTypes []string `json:"dnsRuleRequestTypes,omitempty"`
+	ZpaIPGroup          *NameID  `json:"zpaIpGroup,omitempty"`
+	LastModifiedTime    int      `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy      *NameID  `json:"lastModifiedBy,omitempty"`
+	Devices             []NameID `json:"devices,omitempty"`
+	DeviceGroups        []NameID `json:"deviceGroups,omitempty"`
+	Labels              []NameID `json:"labels,omitempty"`
+	EdnsEcsObject       *NameID  `json:"ednsEcsObject,omitempty"`
+	Predefined          bool     `json:"predefined,omitempty"`
+	DefaultRule         bool     `json:"defaultRule"`
+}
+
+// String prints the struct in json pretty format
+func (p DnsRule) String() string {
+	return jsonString(p)
+}
+
+// Delete deletes an object
+func (u DnsRule) Delete(c *Client) error {
+	return c.DeleteDnsRule(u.ID)
+}
+
 // UrlRule parses responses for urls policies
 type UrlRule struct {
 	ID                     int        `json:"id,omitempty"`
@@ -1037,6 +1091,54 @@ func (c *Client) UpdateUrlRule(rule UrlRule) error {
 // UpdateUrlRule updates the user info using the provided user object
 func (c *Client) DeleteUrlRule(id int) error {
 	return c.deleteRequest("/urlFilteringRules/" + strconv.Itoa(id))
+}
+
+// UpdateUrlRule updates the user info using the provided user object
+func (c *Client) DeleteDnsRule(id int) error {
+	return c.deleteRequest("/firewallDnsRules/" + strconv.Itoa(id))
+}
+
+// GetFwRules gets a list of firewall filtering rules
+func (c *Client) GetDnsRules() ([]DnsRule, error) {
+	body, err := c.getRequest("/firewallDnsRules")
+	if err != nil {
+		return nil, err
+	}
+	res := []DnsRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// AddFwRule adds a firewall filtering rules
+func (c *Client) AddDnsRule(rule DnsRule) (int, error) {
+	postBody, _ := json.Marshal(rule)
+	body, err := c.postRequest("/firewallDnsRules", postBody)
+	if err != nil {
+		return 0, err
+	}
+	res := FwRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, err
+}
+
+// UpdateFwRule updates a firewall filtering rule
+func (c *Client) UpdateDnsRule(obj DnsRule) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/firewallDnsRules/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetFwRules gets a list of firewall filtering rules
