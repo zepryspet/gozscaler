@@ -94,6 +94,79 @@ func (u DnsRule) Delete(c *Client) error {
 	return c.DeleteDnsRule(u.ID)
 }
 
+type SslRule struct {
+	ID                     int           `json:"id,omitempty"`
+	AccessControl          string        `json:"accessControl,omitempty"`
+	Name                   string        `json:"name"`
+	Order                  int           `json:"order,omitempty"`
+	Rank                   int           `json:"rank,omitempty"`
+	Locations              []NameID      `json:"locations,omitempty"`
+	LocationGroups         []NameID      `json:"locationGroups,omitempty"`
+	Departments            []NameID      `json:"departments,omitempty"`
+	Groups                 []NameID      `json:"groups,omitempty"`
+	Users                  []NameID      `json:"users,omitempty"`
+	Platforms              []string      `json:"platforms,omitempty"`
+	RoadWarriorForKerberos bool          `json:"roadWarriorForKerberos,omitempty"`
+	URLCategories          []string      `json:"urlCategories,omitempty"`
+	CloudApplications      []string      `json:"cloudApplications,omitempty"`
+	Action                 DecryptAction `json:"action,omitempty"`
+	State                  string        `json:"state,omitempty"`
+	Description            string        `json:"description,omitempty"`
+	LastModifiedTime       int           `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy         string        `json:"lastModifiedBy,omitempty"`
+	DestIPGroups           []NameID      `json:"destIpGroups,omitempty"`
+	SourceIPGroups         []NameID      `json:"sourceIpGroups,omitempty"`
+	ProxyGateways          []NameID      `json:"proxyGateways,omitempty"`
+	UserAgentTypes         []string      `json:"userAgentTypes,omitempty"`
+	Devices                []NameID      `json:"devices,omitempty"`
+	DeviceGroups           []NameID      `json:"deviceGroups,omitempty"`
+	DeviceTrustLevels      []string      `json:"deviceTrustLevels,omitempty"`
+	Labels                 []NameID      `json:"labels,omitempty"`
+	ZpaAppSegments         []NameID      `json:"zpaAppSegments,omitempty"`
+	WorkloadGroups         []NameID      `json:"workloadGroups,omitempty"`
+	TimeWindows            []NameID      `json:"timeWindows,omitempty"`
+	Predefined             bool          `json:"predefined,omitempty"`
+	DefaultRule            bool          `json:"defaultRule,omitempty"`
+}
+
+type DecryptAction struct {
+	Type                       string                  `json:"type,omitempty"`
+	DecryptSubActions          *DecryptSubActions      `json:"decryptSubActions,omitempty"`
+	DoNotDecryptSubActions     *DoNotDecryptSubActions `json:"doNotDecryptSubActions,omitempty"`
+	ShowEUN                    bool                    `json:"showEUN,omitempty"`
+	ShowEUNATP                 bool                    `json:"showEUNATP,omitempty"`
+	OverrideDefaultCertificate bool                    `json:"overrideDefaultCertificate,omitempty"`
+	SslInterceptionCert        *NameID                 `json:"sslInterceptionCert,omitempty"`
+}
+
+type DecryptSubActions struct {
+	ServerCertificates              string `json:"serverCertificates,omitempty"`
+	OcspCheck                       bool   `json:"ocspCheck,omitempty"`
+	MinClientTLSVersion             string `json:"minClientTLSVersion,omitempty"`
+	MinServerTLSVersion             string `json:"minServerTLSVersion,omitempty"`
+	BlockUndecrypt                  bool   `json:"blockUndecrypt,omitempty"`
+	HTTP2Enabled                    bool   `json:"http2Enabled,omitempty"`
+	BlockSslTrafficWithNoSniEnabled bool   `json:"blockSslTrafficWithNoSniEnabled,omitempty"`
+}
+
+type DoNotDecryptSubActions struct {
+	BypassOtherPolicies             bool   `json:"bypassOtherPolicies,omitempty"`
+	ServerCertificates              string `json:"serverCertificates,omitempty"`
+	OcspCheck                       bool   `json:"ocspCheck,omitempty"`
+	MinTLSVersion                   string `json:"minTLSVersion,omitempty"`
+	BlockSslTrafficWithNoSniEnabled bool   `json:"blockSslTrafficWithNoSniEnabled,omitempty"`
+}
+
+// String prints the struct in json pretty format
+func (p SslRule) String() string {
+	return jsonString(p)
+}
+
+// Delete deletes an object
+func (u SslRule) Delete(c *Client) error {
+	return c.DeleteSslRule(u.ID)
+}
+
 // UrlRule parses responses for urls policies
 type UrlRule struct {
 	ID                     int        `json:"id,omitempty"`
@@ -129,6 +202,57 @@ type UrlRule struct {
 	Ciparule               bool       `json:"ciparule,omitempty"`
 	UserAgentTypes         []string   `json:"userAgentTypes,omitempty"`
 	CbiProfile             CbiProfile `json:"cbiProfile,omitempty"`
+}
+
+type MalwareInspection struct {
+	InspectInbound  bool `json:"inspectInbound"`
+	InspectOutbound bool `json:"inspectOutbound"`
+}
+
+func (p MalwareInspection) String() string {
+	return jsonString(p)
+}
+
+type MalwareProtocols struct {
+	InspectHTTP        bool `json:"inspectHttp"`
+	InspectFtpOverHTTP bool `json:"inspectFtpOverHttp"`
+	InspectFtp         bool `json:"inspectFtp"`
+}
+
+func (p MalwareProtocols) String() string {
+	return jsonString(p)
+}
+
+type MalwareSettings struct {
+	VirusBlocked                bool `json:"virusBlocked"`
+	VirusCapture                bool `json:"virusCapture"`
+	UnwantedApplicationsBlocked bool `json:"unwantedApplicationsBlocked"`
+	UnwantedApplicationsCapture bool `json:"unwantedApplicationsCapture"`
+	TrojanBlocked               bool `json:"trojanBlocked"`
+	TrojanCapture               bool `json:"trojanCapture"`
+	WormBlocked                 bool `json:"wormBlocked"`
+	WormCapture                 bool `json:"wormCapture"`
+	AdwareBlocked               bool `json:"adwareBlocked"`
+	AdwareCapture               bool `json:"adwareCapture"`
+	SpywareBlocked              bool `json:"spywareBlocked"`
+	SpywareCapture              bool `json:"spywareCapture"`
+	RansomwareBlocked           bool `json:"ransomwareBlocked"`
+	RansomwareCapture           bool `json:"ransomwareCapture"`
+	RemoteAccessToolBlocked     bool `json:"remoteAccessToolBlocked"`
+	RemoteAccessToolCapture     bool `json:"remoteAccessToolCapture"`
+}
+
+func (p MalwareSettings) String() string {
+	return jsonString(p)
+}
+
+type MalwarePolicy struct {
+	BlockUnscannableFiles              bool `json:"blockUnscannableFiles"`
+	BlockPasswordProtectedArchiveFiles bool `json:"blockPasswordProtectedArchiveFiles"`
+}
+
+func (p MalwarePolicy) String() string {
+	return jsonString(p)
 }
 
 type CbiProfile struct {
@@ -1093,6 +1217,54 @@ func (c *Client) DeleteUrlRule(id int) error {
 	return c.deleteRequest("/urlFilteringRules/" + strconv.Itoa(id))
 }
 
+// DeleteSslRule updates the user info using the provided user object
+func (c *Client) DeleteSslRule(id int) error {
+	return c.deleteRequest("/sslInspectionRules/" + strconv.Itoa(id))
+}
+
+// GetFwRules gets a list of firewall filtering rules
+func (c *Client) GetSslRules() ([]SslRule, error) {
+	body, err := c.getRequest("/sslInspectionRules")
+	if err != nil {
+		return nil, err
+	}
+	res := []SslRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// AddSslRule adds a s filtering rules
+func (c *Client) AddSslRule(rule DnsRule) (int, error) {
+	postBody, _ := json.Marshal(rule)
+	body, err := c.postRequest("/sslInspectionRules", postBody)
+	if err != nil {
+		return 0, err
+	}
+	res := FwRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, err
+}
+
+// UpdateSslRule updates a ssl filtering rule
+func (c *Client) UpdateSslRule(obj SslRule) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/sslInspectionRules/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpdateUrlRule updates the user info using the provided user object
 func (c *Client) DeleteDnsRule(id int) error {
 	return c.deleteRequest("/firewallDnsRules/" + strconv.Itoa(id))
@@ -1153,6 +1325,106 @@ func (c *Client) GetFwRules() ([]FwRule, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+// GetMalwareInspection gets malware inspection setting
+func (c *Client) GetMalwareInspection() (MalwareInspection, error) {
+	res := MalwareInspection{}
+	body, err := c.getRequest("/cyberThreatProtection/atpMalwareInspection")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
+// UpdateMalwareInspection updates  malware inspection setting
+func (c *Client) UpdateMalwareInspection(obj MalwareInspection) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/cyberThreatProtection/atpMalwareInspection"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetMalwareProtocols gets malware protocols
+func (c *Client) GetMalwareProtocols() (MalwareProtocols, error) {
+	res := MalwareProtocols{}
+	body, err := c.getRequest("/cyberThreatProtection/atpMalwareProtocols")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
+// UpdateMalwareProtocols updates  malware protocols
+func (c *Client) UpdateMalwareProtocols(obj MalwareProtocols) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/cyberThreatProtection/atpMalwareProtocols"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetMalwareSettings gets malware inspection setting
+func (c *Client) GetMalwareSettings() (MalwareSettings, error) {
+	res := MalwareSettings{}
+	body, err := c.getRequest("/cyberThreatProtection/malwareSettings")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
+// UpdateMalwareSettings updates  malware inspection setting
+func (c *Client) UpdateMalwareSettings(obj MalwareSettings) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/cyberThreatProtection/malwareSettings"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetMalwareInspection gets malware policy
+func (c *Client) GetMalwarePolicy() (MalwarePolicy, error) {
+	res := MalwarePolicy{}
+	body, err := c.getRequest("/cyberThreatProtection/malwarePolicy")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
+// UpdateMalwarePolicy updates  malware policy
+func (c *Client) UpdateMalwarePolicy(obj MalwarePolicy) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/cyberThreatProtection/malwarePolicy"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // AddFwRule adds a firewall filtering rules
