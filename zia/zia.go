@@ -213,6 +213,61 @@ func (p MalwareInspection) String() string {
 	return jsonString(p)
 }
 
+type AdvThreatSettings struct {
+	RiskTolerance                        int      `json:"riskTolerance"`
+	RiskToleranceCapture                 bool     `json:"riskToleranceCapture"`
+	CmdCtlServerBlocked                  bool     `json:"cmdCtlServerBlocked"`
+	CmdCtlServerCapture                  bool     `json:"cmdCtlServerCapture"`
+	CmdCtlTrafficBlocked                 bool     `json:"cmdCtlTrafficBlocked"`
+	CmdCtlTrafficCapture                 bool     `json:"cmdCtlTrafficCapture"`
+	MalwareSitesBlocked                  bool     `json:"malwareSitesBlocked"`
+	MalwareSitesCapture                  bool     `json:"malwareSitesCapture"`
+	ActiveXBlocked                       bool     `json:"activeXBlocked"`
+	ActiveXCapture                       bool     `json:"activeXCapture"`
+	BrowserExploitsBlocked               bool     `json:"browserExploitsBlocked"`
+	BrowserExploitsCapture               bool     `json:"browserExploitsCapture"`
+	FileFormatVunerabilitesBlocked       bool     `json:"fileFormatVunerabilitesBlocked"`
+	FileFormatVunerabilitesCapture       bool     `json:"fileFormatVunerabilitesCapture"`
+	KnownPhishingSitesBlocked            bool     `json:"knownPhishingSitesBlocked"`
+	KnownPhishingSitesCapture            bool     `json:"knownPhishingSitesCapture"`
+	SuspectedPhishingSitesBlocked        bool     `json:"suspectedPhishingSitesBlocked"`
+	SuspectedPhishingSitesCapture        bool     `json:"suspectedPhishingSitesCapture"`
+	SuspectAdwareSpywareSitesBlocked     bool     `json:"suspectAdwareSpywareSitesBlocked"`
+	SuspectAdwareSpywareSitesCapture     bool     `json:"suspectAdwareSpywareSitesCapture"`
+	WebspamBlocked                       bool     `json:"webspamBlocked"`
+	WebspamCapture                       bool     `json:"webspamCapture"`
+	IrcTunnellingBlocked                 bool     `json:"ircTunnellingBlocked"`
+	IrcTunnellingCapture                 bool     `json:"ircTunnellingCapture"`
+	AnonymizerBlocked                    bool     `json:"anonymizerBlocked"`
+	AnonymizerCapture                    bool     `json:"anonymizerCapture"`
+	CookieStealingBlocked                bool     `json:"cookieStealingBlocked"`
+	CookieStealingPCAPEnabled            bool     `json:"cookieStealingPCAPEnabled"`
+	PotentialMaliciousRequestsBlocked    bool     `json:"potentialMaliciousRequestsBlocked"`
+	PotentialMaliciousRequestsCapture    bool     `json:"potentialMaliciousRequestsCapture"`
+	BlockedCountries                     []string `json:"blockedCountries"`
+	BlockCountriesCapture                bool     `json:"blockCountriesCapture"`
+	BitTorrentBlocked                    bool     `json:"bitTorrentBlocked"`
+	BitTorrentCapture                    bool     `json:"bitTorrentCapture"`
+	TorBlocked                           bool     `json:"torBlocked"`
+	TorCapture                           bool     `json:"torCapture"`
+	GoogleTalkBlocked                    bool     `json:"googleTalkBlocked"`
+	GoogleTalkCapture                    bool     `json:"googleTalkCapture"`
+	SSHTunnellingBlocked                 bool     `json:"sshTunnellingBlocked"`
+	SSHTunnellingCapture                 bool     `json:"sshTunnellingCapture"`
+	CryptoMiningBlocked                  bool     `json:"cryptoMiningBlocked"`
+	CryptoMiningCapture                  bool     `json:"cryptoMiningCapture"`
+	AdSpywareSitesBlocked                bool     `json:"adSpywareSitesBlocked"`
+	AdSpywareSitesCapture                bool     `json:"adSpywareSitesCapture"`
+	DgaDomainsBlocked                    bool     `json:"dgaDomainsBlocked"`
+	AlertForUnknownOrSuspiciousC2Traffic bool     `json:"alertForUnknownOrSuspiciousC2Traffic"`
+	DgaDomainsCapture                    bool     `json:"dgaDomainsCapture"`
+	MaliciousUrlsCapture                 bool     `json:"maliciousUrlsCapture"`
+}
+
+func (p AdvThreatSettings) String() string {
+	return jsonString(p)
+}
+
 type MalwareProtocols struct {
 	InspectHTTP        bool `json:"inspectHttp"`
 	InspectFtpOverHTTP bool `json:"inspectFtpOverHttp"`
@@ -1345,6 +1400,31 @@ func (c *Client) UpdateMalwareInspection(obj MalwareInspection) error {
 		return e
 	}
 	path := "/cyberThreatProtection/atpMalwareInspection"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetAdvThreatProtection gets threat inspection setting
+func (c *Client) GetAdvThreatProtection() (AdvThreatSettings, error) {
+	res := AdvThreatSettings{}
+	body, err := c.getRequest("/cyberThreatProtection/advancedThreatSettings")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
+// UpdateMalwareInspection updates  malware inspection setting
+func (c *Client) UpdateAdvThreatProtection(obj AdvThreatSettings) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/cyberThreatProtection/advancedThreatSettings"
 	err := c.putRequest(path, postBody)
 	if err != nil {
 		return err
