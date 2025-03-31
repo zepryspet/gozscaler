@@ -296,7 +296,7 @@ func (p MalwareProtocols) String() string {
 	return jsonString(p)
 }
 
-// UrlAndCloudSettings
+// UrlAndCloudSettings updates url can dcloud settings
 type UrlAndCloudSettings struct {
 	EnableDynamicContentCat           bool `json:"enableDynamicContentCat"`
 	ConsiderEmbeddedSites             bool `json:"considerEmbeddedSites"`
@@ -665,7 +665,7 @@ type Service struct {
 	DestTCPPorts  []StartEnd `json:"destTcpPorts,omitempty"`
 	SrcUDPPorts   []StartEnd `json:"srcUdpPorts,omitempty"`
 	DestUDPPorts  []StartEnd `json:"destUdpPorts,omitempty"`
-	Type          string     `json:"type,omitempty"` //Types are CUSTOM, STANDARD AND PREDEFINED. The last 2 are default ones, STANDARD seems to be used for non port based services
+	Type          string     `json:"type,omitempty"` //Types are CUSTOM, STANDARD AND PREDEFINED. The last 2 are default ones, STANDARD seems to be used for non-port based services
 	Description   string     `json:"description,omitempty"`
 	IsNameL10NTag bool       `json:"isNameL10nTag,omitempty"`
 }
@@ -873,7 +873,7 @@ func (u *delUsers) Get() []int {
 	return u.Ids
 }
 
-// Users parses Users
+// User parses Users
 type User struct {
 	ID            int         `json:"id,omitempty"`
 	Name          string      `json:"name"`
@@ -968,7 +968,7 @@ func (p DLPDictionary) String() string {
 	return jsonString(p)
 }
 
-// Phrases holds DLP dictionary phrases
+// Phrase holds DLP dictionary phrases
 type Phrase struct {
 	Action string `json:"action,omitempty"`
 	Phrase string `json:"phrase,omitempty"`
@@ -1059,6 +1059,50 @@ type Sandbox struct {
 	SandboxSubmission string `json:"sandboxSubmission"`
 	VirusName         string `json:"virusName"`
 	VirusType         string `json:"virusType"`
+}
+
+// String prints the struct in json pretty format
+func (p Sandbox) String() string {
+	return jsonString(p)
+}
+
+type SandboxRule struct {
+	ID                 int         `json:"id,omitempty"`
+	Name               string      `json:"name"`
+	Protocols          []string    `json:"protocols,omitempty"`
+	Order              int         `json:"order,omitempty"`
+	BaPolicyCategories []string    `json:"baPolicyCategories,omitempty"`
+	Description        string      `json:"description,omitempty"`
+	Locations          []NameID    `json:"locations,omitempty"`
+	LocationGroups     []NameID    `json:"locationGroups,omitempty"`
+	Groups             []NameID    `json:"groups,omitempty"`
+	Departments        []NameID    `json:"departments,omitempty"`
+	Users              []NameID    `json:"users,omitempty"`
+	URLCategories      []string    `json:"urlCategories,omitempty"`
+	FileTypes          []string    `json:"fileTypes,omitempty"`
+	CbiProfile         *CbiProfile `json:"cbiProfile,omitempty"`
+	CbiProfileID       *int        `json:"cbiProfileId,omitempty"`
+	State              string      `json:"state,omitempty"`
+	TimeWindows        []NameID    `json:"timeWindows,omitempty"`
+	Rank               int         `json:"rank"`
+	LastModifiedTime   *int        `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy     *NameID     `json:"lastModifiedBy,omitempty"`
+	AccessControl      string      `json:"accessControl,omitempty"`
+	BaRuleAction       string      `json:"baRuleAction"`
+	FirstTimeEnable    bool        `json:"firstTimeEnable,omitempty"`
+	FirstTimeOperation string      `json:"firstTimeOperation"`
+	MlActionEnabled    bool        `json:"mlActionEnabled"`
+	Labels             []NameID    `json:"labels,omitempty"`
+	Devices            []NameID    `json:"devices,omitempty"`
+	DeviceGroups       []NameID    `json:"deviceGroups,omitempty"`
+	ZpaAppSegments     []NameID    `json:"zpaAppSegments,omitempty"`
+	ByThreatScore      int         `json:"byThreatScore,omitempty"`
+	DefaultRule        bool        `json:"defaultRule,omitempty"`
+}
+
+// String prints the struct in json pretty format
+func (p SandboxRule) String() string {
+	return jsonString(p)
 }
 
 // DLPNotificationTemplate hols dlp notification template details
@@ -1154,6 +1198,47 @@ func (p DLPRule) String() string {
 	return jsonString(p)
 }
 
+type FileTypeRule struct {
+	ID                int      `json:"id,omitempty"`
+	Protocols         []string `json:"protocols"`
+	Order             int      `json:"order,omitempty"`
+	TimeQuota         *int     `json:"timeQuota,omitempty"`
+	SizeQuota         *int     `json:"sizeQuota,omitempty"`
+	Description       string   `json:"description,omitempty"`
+	Locations         []NameID `json:"locations,omitempty"`
+	LocationGroups    []NameID `json:"locationGroups,omitempty"`
+	Groups            []NameID `json:"groups,omitempty"`
+	Departments       []NameID `json:"departments,omitempty"`
+	Users             []NameID `json:"users,omitempty"`
+	URLCategories     []string `json:"urlCategories,omitempty"`
+	FileTypes         []string `json:"fileTypes,omitempty"`
+	Devices           []NameID `json:"devices,omitempty"`
+	DeviceGroups      []NameID `json:"deviceGroups,omitempty"`
+	DeviceTrustLevels []string `json:"deviceTrustLevels,omitempty"`
+	MinSize           *int     `json:"minSize,omitempty"`
+	MaxSize           *int     `json:"maxSize,omitempty"`
+	FilteringAction   string   `json:"filteringAction"`
+	CapturePCAP       *bool    `json:"capturePCAP,omitempty"`
+	Operation         string   `json:"operation,omitempty"`
+	ActiveContent     *bool    `json:"activeContent,omitempty"`
+	Unscannable       *bool    `json:"unscannable,omitempty"`
+	State             string   `json:"state,omitempty"`
+	TimeWindows       []NameID `json:"timeWindows,omitempty"`
+	Rank              int      `json:"rank"`
+	LastModifiedTime  *int     `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy    *NameID  `json:"lastModifiedBy,omitempty"`
+	AccessControl     string   `json:"accessControl,omitempty"`
+	Name              string   `json:"name,omitempty"`
+	Labels            []NameID `json:"labels,omitempty"`
+	ZpaAppSegments    []NameID `json:"zpaAppSegments,omitempty"`
+	CloudApplications []string `json:"cloudApplications,omitempty"`
+}
+
+// String prints the struct in json pretty format
+func (p FileTypeRule) String() string {
+	return jsonString(p)
+}
+
 type Label struct {
 	ID                  int     `json:"id,omitempty"`
 	Name                string  `json:"name,omitempty"`
@@ -1187,12 +1272,12 @@ type Zurl interface {
 	GetName() string
 }
 
-// Zid is the interface for tyopes that can return ID, so most of them
+// Zid is the interface for types that can return ID, so most of them
 type Zid interface {
 	GetID() (string, int)
 }
 
-// Zid is the interface for tyopes that can return ID as string
+// ZSid is the interface for types that can return ID as string
 type ZSid interface {
 	GetID() (string, string)
 }
@@ -1202,17 +1287,17 @@ type ZDelete interface {
 	Delete(*Client) error
 }
 
-// func (c BlockedUrls)  returns all the urls in a blocklist
+// GetUrls  returns all the urls in a blocklist
 func (c *BlockedUrls) GetUrls(f string) []string {
 	return c.Urls
 }
 
-// func (c Allowed)  returns all the urls in a allowlist
+// GetUrls all the urls in an allowlist
 func (c *AllowedUrls) GetUrls(f string) []string {
 	return c.Urls
 }
 
-// SetUrls sets all the urls in a allowlist
+// GetUrls gets all the urls in an allowlist
 func (c *UrlCat) GetUrls(f string) []string {
 	if f == "urlsRetainingParentCategory" {
 		return c.DbCategorizedUrls
@@ -1221,7 +1306,7 @@ func (c *UrlCat) GetUrls(f string) []string {
 	return c.Urls
 }
 
-// func (c BlockedUrls)  sets all the urls in a blocklist
+// SetUrls  sets all the urls in a blocklist
 func (c *BlockedUrls) SetUrls(f string, u []string) {
 	c.Urls = u
 }
@@ -1240,17 +1325,17 @@ func (c *UrlCat) SetUrls(f string, u []string) {
 	}
 }
 
-// func (c BlockedUrls) GetName()   returns all the urls in a blocklist
+// GetName   returns all the urls in a blocklist
 func (c *BlockedUrls) GetName() string {
 	return "Global Block List"
 }
 
-// func (c AllowedUrls) GetName()  returns all the urls in a allowlist
+// GetName  returns all the urls in a allowlist
 func (c *AllowedUrls) GetName() string {
 	return "Global Allow List"
 }
 
-// func (c UrlCat) GetName()  returns all the urls in a UrlCat
+// GetName  returns all the urls in a UrlCat
 func (c *UrlCat) GetName() string {
 	return c.ConfiguredName
 }
@@ -1283,7 +1368,7 @@ func NewClient(cloud string, admin string, pass string, apiKey string) (*Client,
 	return NewClientLogger(cloud, admin, pass, apiKey, os.Getenv("SLOG"), os.Stdout)
 }
 
-// New client logger creates a new cliente with a custom slog logger
+// NewClientLogger New client logger creates a new client with a custom slog logger
 func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Client, error) {
 	BaseURL := "https://zsapi." + cloud + ".net/api/v1"
 	u, err := url.Parse(BaseURL)
@@ -1385,7 +1470,7 @@ func (c *Client) AddSandbox(file io.Reader, api string, force bool, ContentLengt
 	return c.postRequestSandbox(path, file, ContentLength)
 }
 
-// AddSandbox adds a file for sandbox analysis
+// AddSandboxQuick adds a file for sandbox quick analysis
 func (c *Client) AddSandboxQuick(file io.Reader, api string, ContentLength int64) (Sandbox, error) {
 	v := url.Values{}
 	v.Add("api_token", api)
@@ -1404,7 +1489,7 @@ func (c *Client) UpdateUrlRule(rule UrlRule) error {
 	return err
 }
 
-// UpdateUrlRule updates the user info using the provided user object
+// DeleteUrlRule deletes url rule
 func (c *Client) DeleteUrlRule(id int) error {
 	return c.deleteRequest("/urlFilteringRules/" + strconv.Itoa(id))
 }
@@ -1414,7 +1499,7 @@ func (c *Client) DeleteSslRule(id int) error {
 	return c.deleteRequest("/sslInspectionRules/" + strconv.Itoa(id))
 }
 
-// GetFwRules gets a list of firewall filtering rules
+// GetSslRules gets a list of ssl rules
 func (c *Client) GetSslRules() ([]SslRule, error) {
 	body, err := c.getRequest("/sslInspectionRules")
 	if err != nil {
@@ -1426,6 +1511,102 @@ func (c *Client) GetSslRules() ([]SslRule, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+// GetSandboxRules gets a list of sandbox rules
+func (c *Client) GetSandboxRules() ([]SandboxRule, error) {
+	body, err := c.getRequest("/sandboxRules")
+	if err != nil {
+		return nil, err
+	}
+	res := []SandboxRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// AddSandboxRule adds a sandbox  rule
+func (c *Client) AddSandboxRule(rule SandboxRule) (int, error) {
+	postBody, _ := json.Marshal(rule)
+	body, err := c.postRequest("/sandboxRules", postBody)
+	if err != nil {
+		return 0, err
+	}
+	res := SandboxRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, err
+}
+
+// UpdateSandboxRule updates a sandbox  rule
+func (c *Client) UpdateSandboxRule(obj SandboxRule) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/sandboxRules/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteSandboxRule deletes sandbox rule
+func (c *Client) DeleteSandboxRule(id int) error {
+	return c.deleteRequest("/sandboxRules/" + strconv.Itoa(id))
+}
+
+// GetFiletypeRules gets a list of filetype rules
+func (c *Client) GetFiletypeRules() ([]FileTypeRule, error) {
+	body, err := c.getRequest("/fileTypeRules")
+	if err != nil {
+		return nil, err
+	}
+	res := []FileTypeRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// AddFileTypeRule adds a file type  rule
+func (c *Client) AddFileTypeRule(rule FileTypeRule) (int, error) {
+	postBody, _ := json.Marshal(rule)
+	body, err := c.postRequest("/fileTypeRules", postBody)
+	if err != nil {
+		return 0, err
+	}
+	res := FileTypeRule{}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, err
+	}
+	return res.ID, err
+}
+
+// UpdateFiletypeRule updates a file type  rule
+func (c *Client) UpdateFiletypeRule(obj FileTypeRule) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/fileTypeRules/" + strconv.Itoa(obj.ID)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteFileTypeRule deletes file type rule
+func (c *Client) DeleteFileTypeRule(id int) error {
+	return c.deleteRequest("/fileTypeRules/" + strconv.Itoa(id))
 }
 
 // AddSslRule adds a s filtering rules
@@ -1457,12 +1638,12 @@ func (c *Client) UpdateSslRule(obj SslRule) error {
 	return nil
 }
 
-// UpdateUrlRule updates the user info using the provided user object
+// DeleteDnsRule deletes dns rule
 func (c *Client) DeleteDnsRule(id int) error {
 	return c.deleteRequest("/firewallDnsRules/" + strconv.Itoa(id))
 }
 
-// GetFwRules gets a list of firewall filtering rules
+// GetDnsRules gets a list of dns filtering rules
 func (c *Client) GetDnsRules() ([]DnsRule, error) {
 	body, err := c.getRequest("/firewallDnsRules")
 	if err != nil {
@@ -1476,7 +1657,7 @@ func (c *Client) GetDnsRules() ([]DnsRule, error) {
 	return res, nil
 }
 
-// AddFwRule adds a firewall filtering rules
+// AddDnsRule adds a dns filtering rules
 func (c *Client) AddDnsRule(rule DnsRule) (int, error) {
 	postBody, _ := json.Marshal(rule)
 	body, err := c.postRequest("/firewallDnsRules", postBody)
@@ -1491,7 +1672,7 @@ func (c *Client) AddDnsRule(rule DnsRule) (int, error) {
 	return res.ID, err
 }
 
-// UpdateFwRule updates a firewall filtering rule
+// UpdateDnsRule updates a dns filtering rule
 func (c *Client) UpdateDnsRule(obj DnsRule) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1531,8 +1712,8 @@ func (c *Client) GetMalwareInspection() (MalwareInspection, error) {
 }
 
 // GetSubscriptions gets tenant subscriptions
-func (c *Client) GetSubscriptions() (Subscriptions, error) {
-	res := Subscriptions{}
+func (c *Client) GetSubscriptions() ([]Subscriptions, error) {
+	res := []Subscriptions{}
 	body, err := c.getRequest("/subscriptions")
 	if err != nil {
 		return res, err
@@ -1566,7 +1747,7 @@ func (c *Client) GetAdvThreatProtection() (AdvThreatSettings, error) {
 	return res, err
 }
 
-// UpdateMalwareInspection updates  malware inspection setting
+// UpdateAdvThreatProtection updates  adv setting
 func (c *Client) UpdateAdvThreatProtection(obj AdvThreatSettings) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1641,7 +1822,7 @@ func (c *Client) GetCloudAdvSettings() (AdvSettings, error) {
 	return res, err
 }
 
-// UpdateUrlAndCloudSettings updates  url settings
+// UpdateCloudAdvSettings updates  cloud adv settings
 func (c *Client) UpdateCloudAdvSettings(obj AdvSettings) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -1680,7 +1861,7 @@ func (c *Client) UpdateMalwareSettings(obj MalwareSettings) error {
 	return nil
 }
 
-// GetMalwareInspection gets malware policy
+// GetMalwarePolicy gets malware policy
 func (c *Client) GetMalwarePolicy() (MalwarePolicy, error) {
 	res := MalwarePolicy{}
 	body, err := c.getRequest("/cyberThreatProtection/malwarePolicy")
@@ -1758,7 +1939,7 @@ func (c *Client) DeleteIPDstGroups(id int) error {
 	return c.deleteRequest("/ipDestinationGroups/" + strconv.Itoa(id))
 }
 
-// AddIPDstGroups adds a firewall filtering rules
+// AddIPDstGroup adds an ip destination group
 func (c *Client) AddIPDstGroup(obj IPDstGroup) (int, error) {
 	postBody, _ := json.Marshal(obj)
 	body, err := c.postRequest("/ipDestinationGroups", postBody)
@@ -1855,7 +2036,7 @@ func (c *Client) DeleteServiceGroup(id int) error {
 	return c.deleteRequest("/networkServiceGroups/" + strconv.Itoa(id))
 }
 
-// GetService gets a list of network service groups
+// GetServices gets a list of network service groups
 func (c *Client) GetServices() ([]Service, error) {
 	body, err := c.getRequest("/networkServices")
 	if err != nil {
@@ -1887,7 +2068,7 @@ func (c *Client) DeleteService(id int) error {
 	return c.deleteRequest("/networkServices/" + strconv.Itoa(id))
 }
 
-// GetService gets a list of network service groups
+// GetAuditors gets a list of auditors
 func (c *Client) GetAuditors() ([]User, error) {
 	body, err := c.getRequest("/users/auditors")
 	if err != nil {
@@ -1951,7 +2132,7 @@ func (c *Client) GetLocationGroups() ([]LocationGroup, error) {
 	return getPaged[LocationGroup](c, 1000, "/locations/groups")
 }
 
-// GetLocationGroups gets all departments
+// GetDeparments gets all departments
 func (c *Client) GetDeparments() ([]Department, error) {
 	return getPaged[Department](c, 1000, "/departments")
 }
@@ -2001,7 +2182,7 @@ func (c *Client) DeleteUser(id int) error {
 	return c.deleteRequest("/users/" + strconv.Itoa(id))
 }
 
-// DeleteUses deletes users in bulk
+// DeleteUsers deletes users in bulk
 // return deleted users as []int, and err for http errors
 func (c *Client) DeleteUsers(uIds []int) ([]int, error) {
 	res := delUsers{}
@@ -2100,7 +2281,7 @@ func (c *Client) AddLocation(obj Location) (int, error) {
 	return res.ID, err
 }
 
-// Edit updates a new location or sublocation and returns the new object ID
+// UpdateLocation Edit updates a new location or sublocation and returns the new object ID
 func (c *Client) UpdateLocation(obj Location) error {
 	postBody, e := json.Marshal(obj)
 	if e != nil {
@@ -2262,7 +2443,7 @@ func (c *Client) GetDLPNotificationTemplates() ([]DLPNotificationTemplate, error
 	return res, nil
 }
 
-// AddDLPNotificationTemplates adds a DLP notification template
+// AddDLPNotificationTemplate adds a DLP notification template
 func (c *Client) AddDLPNotificationTemplate(entry DLPNotificationTemplate) (int, error) {
 	res := DLPNotificationTemplate{}
 	postBody, _ := json.Marshal(entry)
@@ -2282,7 +2463,7 @@ func (c *Client) DeleteDLPNotificationTemplate(id int) error {
 	return c.deleteRequest("/dlpNotificationTemplates/" + strconv.Itoa(id))
 }
 
-// GetDLPEngines get all the DLP engines
+// GetICAPServers get all the icap servers
 func (c *Client) GetICAPServers() ([]ICAPServer, error) {
 	res := []ICAPServer{}
 	body, err := c.getRequest("/icapServers")
@@ -2296,7 +2477,7 @@ func (c *Client) GetICAPServers() ([]ICAPServer, error) {
 	return res, nil
 }
 
-// GetDLPEngines get all the DLP engines
+// GetDLPRules get all the DLP rules
 func (c *Client) GetDLPRules() ([]DLPRule, error) {
 	res := []DLPRule{}
 	body, err := c.getRequest("/webDlpRules")
@@ -2539,10 +2720,6 @@ func (c *Client) postRequestSandbox(path string, data io.Reader, ContentLength i
 	if err != nil {
 		return Sandbox{}, err
 	}
-
-	if err != nil {
-		return Sandbox{}, err
-	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return Sandbox{}, err
@@ -2747,7 +2924,7 @@ func KeyGen(BaseURL string, admin string, pass string, apiKey string) ([]*http.C
 	return nil, &ZIAError{Err: "can't authenticate please check credentials,base url or apikey"}
 }
 
-// obfuscateApiKey ofuscates the API key based on Zscaler documentation
+// obfuscateApiKey obfuscates the API key based on Zscaler documentation
 func obfuscateApiKey(api string, t string) (string, error) {
 	if len(t) < 6 {
 		return "", &ZIAError{Err: "time lenght for ofuscation is less than 6 digits, please check your system's clock"}
