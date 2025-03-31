@@ -208,6 +208,24 @@ type MalwareInspection struct {
 	InspectInbound  bool `json:"inspectInbound"`
 	InspectOutbound bool `json:"inspectOutbound"`
 }
+type Subscriptions struct {
+	ID                 string `json:"id"`
+	Status             string `json:"status"`
+	State              string `json:"state"`
+	Licenses           int    `json:"licenses"`
+	StartDate          int    `json:"startDate"`
+	StrStartDate       string `json:"strStartDate"`
+	StrEndDate         string `json:"strEndDate"`
+	EndDate            int    `json:"endDate"`
+	Sku                string `json:"sku"`
+	CellCount          string `json:"cellCount"`
+	UpdatedAtTimestamp int    `json:"updatedAtTimestamp"`
+	Subscribed         bool   `json:"subscribed"`
+}
+
+func (p Subscriptions) String() string {
+	return jsonString(p)
+}
 
 func (p MalwareInspection) String() string {
 	return jsonString(p)
@@ -276,6 +294,125 @@ type MalwareProtocols struct {
 
 func (p MalwareProtocols) String() string {
 	return jsonString(p)
+}
+
+// UrlAndCloudSettings
+type UrlAndCloudSettings struct {
+	EnableDynamicContentCat           bool `json:"enableDynamicContentCat"`
+	ConsiderEmbeddedSites             bool `json:"considerEmbeddedSites"`
+	EnforceSafeSearch                 bool `json:"enforceSafeSearch"`
+	EnableOffice365                   bool `json:"enableOffice365"`
+	EnableMsftO365                    bool `json:"enableMsftO365"`
+	EnableUcaasZoom                   bool `json:"enableUcaasZoom"`
+	EnableUcaasLogMeIn                bool `json:"enableUcaasLogMeIn"`
+	EnableUcaasRingCentral            bool `json:"enableUcaasRingCentral"`
+	EnableUcaasWebex                  bool `json:"enableUcaasWebex"`
+	EnableChatGptPrompt               bool `json:"enableChatGptPrompt,omitempty"`
+	EnableMicrosoftCoPilotPrompt      bool `json:"enableMicrosoftCoPilotPrompt,omitempty"`
+	EnableGeminiPrompt                bool `json:"enableGeminiPrompt,omitempty"`
+	EnablePOEPrompt                   bool `json:"enablePOEPrompt,omitempty"`
+	EnableMetaPrompt                  bool `json:"enableMetaPrompt,omitempty"`
+	EnablePerPlexityPrompt            bool `json:"enablePerPlexityPrompt,omitempty"`
+	BlockSkype                        bool `json:"blockSkype"`
+	EnableNewlyRegisteredDomains      bool `json:"enableNewlyRegisteredDomains"`
+	EnableBlockOverrideForNonAuthUser bool `json:"enableBlockOverrideForNonAuthUser"`
+	EnableCIPACompliance              bool `json:"enableCIPACompliance"`
+}
+
+func (p UrlAndCloudSettings) String() string {
+	return jsonString(p)
+}
+
+type AdvSettings struct {
+	AuthBypassURLCategories                                []string   `json:"authBypassUrlCategories,omitempty"`
+	DomainFrontingBypassURLCategories                      []string   `json:"domainFrontingBypassUrlCategories,omitempty"`
+	AuthBypassUrls                                         []string   `json:"authBypassUrls,omitempty"`
+	AuthBypassApps                                         []string   `json:"authBypassApps,omitempty"`
+	KerberosBypassURLCategories                            []string   `json:"kerberosBypassUrlCategories,omitempty"`
+	KerberosBypassUrls                                     []string   `json:"kerberosBypassUrls,omitempty"`
+	KerberosBypassApps                                     []string   `json:"kerberosBypassApps,omitempty"`
+	BasicBypassURLCategories                               []string   `json:"basicBypassUrlCategories,omitempty"`
+	BasicBypassApps                                        []string   `json:"basicBypassApps,omitempty"`
+	HTTPRangeHeaderRemoveURLCategories                     []string   `json:"httpRangeHeaderRemoveUrlCategories,omitempty"`
+	DigestAuthBypassURLCategories                          []string   `json:"digestAuthBypassUrlCategories,omitempty"`
+	DigestAuthBypassUrls                                   []string   `json:"digestAuthBypassUrls,omitempty"`
+	DigestAuthBypassApps                                   []string   `json:"digestAuthBypassApps,omitempty"`
+	EnableDNSResolutionOnTransparentProxy                  bool       `json:"enableDnsResolutionOnTransparentProxy"`
+	EnableIPv6DNSResolutionOnTransparentProxy              bool       `json:"enableIPv6DnsResolutionOnTransparentProxy"`
+	EnableIPv6DNSOptimizationOnAllTransparentProxy         bool       `json:"enableIPv6DnsOptimizationOnAllTransparentProxy"`
+	EnableEvaluatePolicyOnGlobalSSLBypass                  bool       `json:"enableEvaluatePolicyOnGlobalSSLBypass"`
+	DNSResolutionOnTransparentProxyExemptURLCategories     []string   `json:"dnsResolutionOnTransparentProxyExemptUrlCategories,omitempty"`
+	DNSResolutionOnTransparentProxyIPv6ExemptURLCategories []string   `json:"dnsResolutionOnTransparentProxyIPv6ExemptUrlCategories,omitempty"`
+	DNSResolutionOnTransparentProxyExemptUrls              []string   `json:"dnsResolutionOnTransparentProxyExemptUrls,omitempty"`
+	DNSResolutionOnTransparentProxyExemptApps              []string   `json:"dnsResolutionOnTransparentProxyExemptApps,omitempty"`
+	DNSResolutionOnTransparentProxyIPv6ExemptApps          []string   `json:"dnsResolutionOnTransparentProxyIPv6ExemptApps,omitempty"`
+	DNSResolutionOnTransparentProxyURLCategories           []string   `json:"dnsResolutionOnTransparentProxyUrlCategories,omitempty"`
+	DNSResolutionOnTransparentProxyIPv6URLCategories       []string   `json:"dnsResolutionOnTransparentProxyIPv6UrlCategories,omitempty"`
+	DNSResolutionOnTransparentProxyUrls                    []string   `json:"dnsResolutionOnTransparentProxyUrls,omitempty"`
+	DNSResolutionOnTransparentProxyApps                    []string   `json:"dnsResolutionOnTransparentProxyApps,omitempty"`
+	DNSResolutionOnTransparentProxyIPv6Apps                []string   `json:"dnsResolutionOnTransparentProxyIPv6Apps,omitempty"`
+	BlockDomainFrontingApps                                []string   `json:"blockDomainFrontingApps,omitempty"`
+	PreferSniOverConnHostApps                              []string   `json:"preferSniOverConnHostApps,omitempty"`
+	EnableOffice365                                        bool       `json:"enableOffice365"`
+	LogInternalIP                                          bool       `json:"logInternalIp"`
+	EnforceSurrogateIPForWindowsApp                        bool       `json:"enforceSurrogateIpForWindowsApp"`
+	TrackHTTPTunnelOnHTTPPorts                             bool       `json:"trackHttpTunnelOnHttpPorts"`
+	BlockHTTPTunnelOnNonHTTPPorts                          bool       `json:"blockHttpTunnelOnNonHttpPorts"`
+	BlockDomainFrontingOnHostHeader                        bool       `json:"blockDomainFrontingOnHostHeader"`
+	ZscalerClientConnector1AndPacRoadWarriorInFirewall     bool       `json:"zscalerClientConnector1AndPacRoadWarriorInFirewall"`
+	CascadeURLFiltering                                    bool       `json:"cascadeUrlFiltering"`
+	EnablePolicyForUnauthenticatedTraffic                  bool       `json:"enablePolicyForUnauthenticatedTraffic"`
+	BlockNonCompliantHTTPRequestOnHTTPPorts                bool       `json:"blockNonCompliantHttpRequestOnHttpPorts"`
+	EnableAdminRankAccess                                  bool       `json:"enableAdminRankAccess"`
+	UISessionTimeout                                       int        `json:"uiSessionTimeout"`
+	HTTP2NonbrowserTrafficEnabled                          bool       `json:"http2NonbrowserTrafficEnabled"`
+	EcsForAllEnabled                                       bool       `json:"ecsForAllEnabled"`
+	EcsObject                                              *EcsObject `json:"ecsObject,omitempty"`
+	DynamicUserRiskEnabled                                 bool       `json:"dynamicUserRiskEnabled"`
+	BlockConnectHostSniMismatch                            bool       `json:"blockConnectHostSniMismatch"`
+	PreferSniOverConnHost                                  bool       `json:"preferSniOverConnHost"`
+	SipaXffHeaderEnabled                                   bool       `json:"sipaXffHeaderEnabled"`
+	BlockNonHTTPOnHTTPPortEnabled                          bool       `json:"blockNonHttpOnHttpPortEnabled"`
+	SniDNSOptimizationBypassURLCategories                  []string   `json:"sniDnsOptimizationBypassUrlCategories,omitempty"`
+}
+
+func (p AdvSettings) String() string {
+	return jsonString(p)
+}
+
+type EcsObject struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	ExternalID string `json:"externalId"`
+	Extensions struct {
+		AdditionalProp1 string `json:"additionalProp1"`
+		AdditionalProp2 string `json:"additionalProp2"`
+		AdditionalProp3 string `json:"additionalProp3"`
+	} `json:"extensions"`
+}
+
+type AdvOptions struct {
+	Val                int    `json:"val"`
+	Mask               int    `json:"mask"`
+	URLSupercategory   string `json:"urlSupercategory"`
+	Deprecated         bool   `json:"deprecated"`
+	BackendName        string `json:"backendName"`
+	Name               string `json:"name"`
+	UserConfiguredName string `json:"userConfiguredName"`
+	Comments           string `json:"comments"`
+}
+
+type AdvAppOptions struct {
+	Val                 int    `json:"val"`
+	WebApplicationClass string `json:"webApplicationClass"`
+	BackendName         string `json:"backendName"`
+	OriginalName        string `json:"originalName"`
+	Name                string `json:"name"`
+	Deprecated          bool   `json:"deprecated"`
+	Misc                bool   `json:"misc"`
+	AppNotReady         bool   `json:"appNotReady"`
+	UnderMigration      bool   `json:"underMigration"`
+	AppCatModified      bool   `json:"appCatModified"`
 }
 
 type MalwareSettings struct {
@@ -1393,6 +1530,17 @@ func (c *Client) GetMalwareInspection() (MalwareInspection, error) {
 	return res, err
 }
 
+// GetSubscriptions gets tenant subscriptions
+func (c *Client) GetSubscriptions() (Subscriptions, error) {
+	res := Subscriptions{}
+	body, err := c.getRequest("/subscriptions")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
 // UpdateMalwareInspection updates  malware inspection setting
 func (c *Client) UpdateMalwareInspection(obj MalwareInspection) error {
 	postBody, e := json.Marshal(obj)
@@ -1450,6 +1598,56 @@ func (c *Client) UpdateMalwareProtocols(obj MalwareProtocols) error {
 		return e
 	}
 	path := "/cyberThreatProtection/atpMalwareProtocols"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetUrlAndCloudSettings gets  url settings
+func (c *Client) GetUrlAndCloudSettings() (UrlAndCloudSettings, error) {
+	res := UrlAndCloudSettings{}
+	body, err := c.getRequest("/advancedUrlFilterAndCloudAppSettings")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
+// UpdateUrlAndCloudSettings updates  url settings
+func (c *Client) UpdateUrlAndCloudSettings(obj UrlAndCloudSettings) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/advancedUrlFilterAndCloudAppSettings"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetCloudAdvSettings gets  url settings
+func (c *Client) GetCloudAdvSettings() (AdvSettings, error) {
+	res := AdvSettings{}
+	body, err := c.getRequest("/advancedSettings")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
+}
+
+// UpdateUrlAndCloudSettings updates  url settings
+func (c *Client) UpdateCloudAdvSettings(obj AdvSettings) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/advancedSettings"
 	err := c.putRequest(path, postBody)
 	if err != nil {
 		return err
