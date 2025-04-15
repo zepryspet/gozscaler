@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // ZIAError is the error
@@ -38,6 +39,8 @@ type Client struct {
 	HTTPClient *http.Client
 	RetryMax   int
 	Log        *slog.Logger
+	//oneapi auth
+	Bearer string
 }
 
 type DnsRule struct {
@@ -1404,6 +1407,89 @@ func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Cl
 	}, nil
 }
 
+// oneApiAuth struct t used to authenticate to oneapi
+type oneApiAuth struct {
+	GrantType    string `json:"grant_type"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	Audience     string `json:"audience"`
+}
+
+type authResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
+// NewOneApiClient creates a new client using oneapi
+// vanity domain
+// client
+func NewOneApiClient(vanity, clientId, clientSecret string) (*Client, error) {
+	return NewOneApiClientLogger(vanity, clientId, clientSecret, os.Getenv("SLOG"), os.Stdout)
+}
+
+// NewOneApiClientLogger New client logger creates a new client with a custom slog logger
+// this uses client id and client secret
+func NewOneApiClientLogger(vanity, clientId, clientSecret, level string, w io.Writer) (*Client, error) {
+	err := validateVanity(vanity)
+	if err != nil {
+		return nil, err
+	}
+	form := url.Values{}
+	form.Add("grant_type", "client_credentials")
+	form.Add("client_id", clientId)
+	form.Add("client_secret", clientSecret)
+	form.Add("audience", "https://api.zscaler.com")
+	client := http.Client{
+		Timeout: time.Second * 100,
+	}
+	resp, err := client.Post("https://"+vanity+".zslogin.net/oauth2/v1/token", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("module:gozscaler. error authenticating to oneapi: %v", err)
+	}
+	defer resp.Body.Close()
+	//Check for anything but a http 200 and then parse body
+	err = httpStatusCheck(resp)
+	if err != nil {
+		return nil, fmt.Errorf("module:gozscaler. error authenticating to oneapi: %v", err)
+	}
+	//Parsing response
+	var token authResponse
+	err = json.NewDecoder(resp.Body).Decode(&token)
+	if err != nil {
+		return nil, fmt.Errorf("module:gozscaler. error decoding auth token, error:%v", err)
+	}
+	opts := &slog.HandlerOptions{} //level info by default
+	if level == "DEBUG" {
+		opts.Level = slog.LevelDebug
+	}
+	BaseURL := "https://api.zsapi.net/zia/api/v1"
+	parent := slog.New(slog.NewJSONHandler(w, opts))
+	child := parent.With(slog.String("module", "gozscaler"),
+		slog.String("client", "zia"))
+	return &Client{
+		BaseURL: BaseURL,
+		HTTPClient: &http.Client{
+			Timeout: time.Second * 200,
+		},
+		RetryMax: 10,
+		Log:      child,
+		Bearer:   token.AccessToken,
+	}, nil
+}
+
+func validateVanity(vanity string) error {
+	if strings.HasSuffix(vanity, "-admin") {
+		return fmt.Errorf("invalid vanity domain: %s . Please remove -admin", vanity)
+	}
+	for _, c := range vanity {
+		if !unicode.IsDigit(c) && !unicode.IsLetter(c) && c != '-' {
+			return fmt.Errorf("invalid vanity character '%c' in domain: %s", c, vanity)
+		}
+	}
+	return nil
+}
+
 // UrlLookup return the url categories for requested URLs.
 // up to 100 urls per request and 400 requests per hour according to zscaler limits
 func (c *Client) UrlLookup(urls []string) ([]UrlLookup, error) {
@@ -1610,13 +1696,13 @@ func (c *Client) DeleteFileTypeRule(id int) error {
 }
 
 // AddSslRule adds a s filtering rules
-func (c *Client) AddSslRule(rule DnsRule) (int, error) {
+func (c *Client) AddSslRule(rule SslRule) (int, error) {
 	postBody, _ := json.Marshal(rule)
 	body, err := c.postRequest("/sslInspectionRules", postBody)
 	if err != nil {
 		return 0, err
 	}
-	res := FwRule{}
+	res := SslRule{}
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return 0, err
@@ -1664,7 +1750,7 @@ func (c *Client) AddDnsRule(rule DnsRule) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	res := FwRule{}
+	res := DnsRule{}
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return 0, err
@@ -2693,6 +2779,9 @@ func (c *Client) postRequest(path string, payload []byte) ([]byte, error) {
 
 // postRequestSandbox Process and sends HTTP POST requests
 func (c *Client) postRequestSandbox(path string, data io.Reader, ContentLength int64) (Sandbox, error) {
+	if c.SanboxUrl == "" {
+		return Sandbox{}, fmt.Errorf("sandbox url is empty, please make sure you use legacy api")
+	}
 	buf := make([]byte, 512) // Read first 512 bytes
 	_, err := io.ReadAtLeast(data, buf, 512)
 	if err != nil {
@@ -2755,6 +2844,10 @@ func (c *Client) putRequest(path string, payload []byte) error {
 // do Function de send the HTTP request and return the response and error
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
+	//Adding auth header for onelogin
+	if c.Bearer != "" {
+		req.Header.Add("Authorization", "Bearer "+c.Bearer)
+	}
 	r, err := c.doWithOptions(req, retryMax)
 	if err != nil {
 		c.Log.Info("HTTP failed with error ",
