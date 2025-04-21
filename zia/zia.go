@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/zepryspet/gozscaler/oneapi"
 	"io"
 	"log/slog"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 )
 
 // ZIAError is the error
@@ -1053,6 +1053,123 @@ func (p DLPEngine) String() string {
 	return jsonString(p)
 }
 
+type PacFile struct {
+	ID                    int     `json:"id,omitempty"`
+	Name                  string  `json:"name"`
+	Description           string  `json:"description"`
+	Domain                string  `json:"domain"`
+	PacURL                string  `json:"pacUrl,omitempty"`
+	PacContent            string  `json:"pacContent"`
+	Editable              bool    `json:"editable"`
+	PacSubURL             string  `json:"pacSubURL,omitempty"`
+	PacURLObfuscated      bool    `json:"pacUrlObfuscated"`
+	PacVerificationStatus string  `json:"pacVerificationStatus,omitempty"`
+	PacVersionStatus      string  `json:"pacVersionStatus,omitempty"`
+	PacVersion            int     `json:"pacVersion,omitempty"`
+	PacCommitMessage      string  `json:"pacCommitMessage,omitempty"`
+	TotalHits             int     `json:"totalHits,omitempty"`
+	LastModificationTime  int     `json:"lastModificationTime,omitempty"`
+	LastModifiedBy        *NameID `json:"lastModifiedBy,omitempty"`
+	CreateTime            int     `json:"createTime,omitempty"`
+}
+
+// ObjName prints the name
+func (p PacFile) ObjName() string {
+	return p.Name
+}
+
+// String prints the struct in json pretty format
+func (p PacFile) String() string {
+	return jsonString(p)
+}
+
+type OrgInfo struct {
+	OrgID                                 int      `json:"orgId"`
+	Name                                  string   `json:"name"`
+	HqLocation                            string   `json:"hqLocation"`
+	Domains                               []string `json:"domains"`
+	GeoLocation                           string   `json:"geoLocation"`
+	IndustryVertical                      string   `json:"industryVertical"`
+	AddrLine1                             string   `json:"addrLine1"`
+	AddrLine2                             string   `json:"addrLine2"`
+	City                                  string   `json:"city"`
+	State                                 string   `json:"state"`
+	Zipcode                               string   `json:"zipcode"`
+	Country                               string   `json:"country"`
+	EmployeeCount                         string   `json:"employeeCount"`
+	Language                              string   `json:"language"`
+	Timezone                              string   `json:"timezone"`
+	AlertTimer                            string   `json:"alertTimer"`
+	Pdomain                               string   `json:"pdomain"`
+	InternalCompany                       bool     `json:"internalCompany"`
+	PrimaryTechnicalContactcontactType    string   `json:"primaryTechnicalContactcontactType"`
+	PrimaryTechnicalContactName           string   `json:"primaryTechnicalContactName"`
+	PrimaryTechnicalContactTitle          string   `json:"primaryTechnicalContactTitle"`
+	PrimaryTechnicalContactEmail          string   `json:"primaryTechnicalContactEmail"`
+	PrimaryTechnicalContactPhone          string   `json:"primaryTechnicalContactPhone"`
+	PrimaryTechnicalContactAltPhone       string   `json:"primaryTechnicalContactAltPhone"`
+	PrimaryTechnicalContactInsightsHref   string   `json:"primaryTechnicalContactInsightsHref"`
+	SecondaryTechnicalContactcontactType  string   `json:"secondaryTechnicalContactcontactType"`
+	SecondaryTechnicalContactName         string   `json:"secondaryTechnicalContactName"`
+	SecondaryTechnicalContactTitle        string   `json:"secondaryTechnicalContactTitle"`
+	SecondaryTechnicalContactEmail        string   `json:"secondaryTechnicalContactEmail"`
+	SecondaryTechnicalContactPhone        string   `json:"secondaryTechnicalContactPhone"`
+	SecondaryTechnicalContactAltPhone     string   `json:"secondaryTechnicalContactAltPhone"`
+	SecondaryTechnicalContactInsightsHref string   `json:"secondaryTechnicalContactInsightsHref"`
+	PrimaryBillingContactcontactType      string   `json:"primaryBillingContactcontactType"`
+	PrimaryBillingContactName             string   `json:"primaryBillingContactName"`
+	PrimaryBillingContactTitle            string   `json:"primaryBillingContactTitle"`
+	PrimaryBillingContactEmail            string   `json:"primaryBillingContactEmail"`
+	PrimaryBillingContactPhone            string   `json:"primaryBillingContactPhone"`
+	PrimaryBillingContactAltPhone         string   `json:"primaryBillingContactAltPhone"`
+	PrimaryBillingContactInsightsHref     string   `json:"primaryBillingContactInsightsHref"`
+	SecondaryBillingContactcontactType    string   `json:"secondaryBillingContactcontactType"`
+	SecondaryBillingContactName           string   `json:"secondaryBillingContactName"`
+	SecondaryBillingContactTitle          string   `json:"secondaryBillingContactTitle"`
+	SecondaryBillingContactEmail          string   `json:"secondaryBillingContactEmail"`
+	SecondaryBillingContactPhone          string   `json:"secondaryBillingContactPhone"`
+	SecondaryBillingContactAltPhone       string   `json:"secondaryBillingContactAltPhone"`
+	SecondaryBillingContactInsightsHref   string   `json:"secondaryBillingContactInsightsHref"`
+	PrimaryBusinessContactcontactType     string   `json:"primaryBusinessContactcontactType"`
+	PrimaryBusinessContactName            string   `json:"primaryBusinessContactName"`
+	PrimaryBusinessContactTitle           string   `json:"primaryBusinessContactTitle"`
+	PrimaryBusinessContactEmail           string   `json:"primaryBusinessContactEmail"`
+	PrimaryBusinessContactPhone           string   `json:"primaryBusinessContactPhone"`
+	PrimaryBusinessContactAltPhone        string   `json:"primaryBusinessContactAltPhone"`
+	PrimaryBusinessContactInsightsHref    string   `json:"primaryBusinessContactInsightsHref"`
+	SecondaryBusinessContactcontactType   string   `json:"secondaryBusinessContactcontactType"`
+	SecondaryBusinessContactName          string   `json:"secondaryBusinessContactName"`
+	SecondaryBusinessContactTitle         string   `json:"secondaryBusinessContactTitle"`
+	SecondaryBusinessContactEmail         string   `json:"secondaryBusinessContactEmail"`
+	SecondaryBusinessContactPhone         string   `json:"secondaryBusinessContactPhone"`
+	SecondaryBusinessContactAltPhone      string   `json:"secondaryBusinessContactAltPhone"`
+	SecondaryBusinessContactInsightsHref  string   `json:"secondaryBusinessContactInsightsHref"`
+	ExecInsightsHref                      string   `json:"execInsightsHref"`
+	LegacyInsightsReportWasEnabled        bool     `json:"legacyInsightsReportWasEnabled"`
+	LogoBase64Data                        string   `json:"logoBase64Data"`
+	LogoMimeType                          string   `json:"logoMimeType"`
+	CloudName                             string   `json:"cloudName"`
+	ExternalEmailPortal                   bool     `json:"externalEmailPortal"`
+	ZpaTenantID                           int      `json:"zpaTenantId"`
+	ZpaTenantCloud                        string   `json:"zpaTenantCloud"`
+	CustomerContactInherit                bool     `json:"customerContactInherit"`
+}
+
+// String prints the struct in json pretty format
+func (p OrgInfo) String() string {
+	return jsonString(p)
+}
+
+type PacAction string
+
+const (
+	DEPLOY    PacAction = "DEPLOY"
+	STAGE     PacAction = "STAGE"
+	LKG       PacAction = "LKG" //last known good
+	UNSTAGE   PacAction = "UNSTAGE"
+	REMOVELKG PacAction = "REMOVE_LKG" // remove known last good, if you sue this you need to provide the previous version that would be marked as good
+)
+
 // Sandbox response
 type Sandbox struct {
 	Code              int    `json:"code"`
@@ -1407,20 +1524,6 @@ func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Cl
 	}, nil
 }
 
-// oneApiAuth struct t used to authenticate to oneapi
-type oneApiAuth struct {
-	GrantType    string `json:"grant_type"`
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	Audience     string `json:"audience"`
-}
-
-type authResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
-}
-
 // NewOneApiClient creates a new client using oneapi
 // vanity domain
 // client
@@ -1431,33 +1534,9 @@ func NewOneApiClient(vanity, clientId, clientSecret string) (*Client, error) {
 // NewOneApiClientLogger New client logger creates a new client with a custom slog logger
 // this uses client id and client secret
 func NewOneApiClientLogger(vanity, clientId, clientSecret, level string, w io.Writer) (*Client, error) {
-	err := validateVanity(vanity)
+	token, err := oneapi.AuthSecret(vanity, clientId, clientSecret)
 	if err != nil {
 		return nil, err
-	}
-	form := url.Values{}
-	form.Add("grant_type", "client_credentials")
-	form.Add("client_id", clientId)
-	form.Add("client_secret", clientSecret)
-	form.Add("audience", "https://api.zscaler.com")
-	client := http.Client{
-		Timeout: time.Second * 100,
-	}
-	resp, err := client.Post("https://"+vanity+".zslogin.net/oauth2/v1/token", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
-	if err != nil {
-		return nil, fmt.Errorf("module:gozscaler. error authenticating to oneapi: %v", err)
-	}
-	defer resp.Body.Close()
-	//Check for anything but a http 200 and then parse body
-	err = httpStatusCheck(resp)
-	if err != nil {
-		return nil, fmt.Errorf("module:gozscaler. error authenticating to oneapi: %v", err)
-	}
-	//Parsing response
-	var token authResponse
-	err = json.NewDecoder(resp.Body).Decode(&token)
-	if err != nil {
-		return nil, fmt.Errorf("module:gozscaler. error decoding auth token, error:%v", err)
 	}
 	opts := &slog.HandlerOptions{} //level info by default
 	if level == "DEBUG" {
@@ -1474,20 +1553,8 @@ func NewOneApiClientLogger(vanity, clientId, clientSecret, level string, w io.Wr
 		},
 		RetryMax: 10,
 		Log:      child,
-		Bearer:   token.AccessToken,
+		Bearer:   token,
 	}, nil
-}
-
-func validateVanity(vanity string) error {
-	if strings.HasSuffix(vanity, "-admin") {
-		return fmt.Errorf("invalid vanity domain: %s . Please remove -admin", vanity)
-	}
-	for _, c := range vanity {
-		if !unicode.IsDigit(c) && !unicode.IsLetter(c) && c != '-' {
-			return fmt.Errorf("invalid vanity character '%c' in domain: %s", c, vanity)
-		}
-	}
-	return nil
 }
 
 // UrlLookup return the url categories for requested URLs.
@@ -2456,6 +2523,69 @@ func (c *Client) DeleteDLPDictionary(id int) error {
 	return c.deleteRequest("/dlpDictionaries/" + strconv.Itoa(id))
 }
 
+// GetPacFiles Retrieves the list of all PAC files which are in deployed state. This list includes default and custom PAC files. To learn more, see About Hosted PAC Files.
+func (c *Client) GetPacFiles() (res []PacFile, err error) {
+	body, err := c.getRequest("/pacFiles")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, nil
+}
+
+// AddPacFile adds a pac file
+// Note: Before adding a new PAC file, you can validate the content of the PAC file by sending a POST request to /pacFiles/validate.
+// This request only adds a PAC file. The PAC file needs to be transitioned to the Deploy state in order for the file to be deployed.
+func (c *Client) AddPacFile(obj PacFile) (PacFile, error) {
+	res := PacFile{}
+	if obj.Domain == "" { //if domain is empty get a new one
+		info, er := c.GetOrgInfo()
+		if er != nil {
+			return res, er
+		}
+		if len(info.Domains) > 0 {
+			obj.Domain = info.Domains[0]
+		} else {
+			obj.Domain = info.Pdomain
+		}
+	}
+
+	postBody, _ := json.Marshal(obj)
+	body, err := c.postRequest("/pacFiles", postBody)
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+// UpdatePacFile Performs the specified action on the PAC file version and updates the file status.
+// it only updates the pac file status. Existing pac files can't be modified, you'll need to clone one and deploy it
+// Supported actions include deploying, staging, unstaging, and marking or unmarking the file as last known good version can be performed on PAC file versions.
+func (c *Client) UpdatePacFile(obj PacFile, action PacAction) error {
+	path := "/pacFiles/" + strconv.Itoa(obj.ID) + "/version/" + strconv.Itoa(obj.PacVersion) + "/action/" + string(action)
+	return c.putRequest(path, nil)
+}
+
+// ClonePacFile clones a pac file using the version in the object
+func (c *Client) ClonePacFile(obj PacFile) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/pacFiles/" + strconv.Itoa(obj.ID) + "/version/" + strconv.Itoa(obj.PacVersion)
+	_, err := c.postRequest(path, postBody)
+	return err
+}
+
+// DeletePacFile deletes a pac file
+func (c *Client) DeletePacFile(id int) error {
+	return c.deleteRequest("/pacFiles/" + strconv.Itoa(id))
+}
+
 // Activate activates all changes
 func (c *Client) Activate() error {
 	_, err := c.postRequest("/status/activate", nil)
@@ -2575,6 +2705,16 @@ func (c *Client) GetDLPRules() ([]DLPRule, error) {
 		return res, err
 	}
 	return res, nil
+}
+
+// GetDefaultDomain returns the last domain added on zia
+func (c *Client) GetOrgInfo() (res OrgInfo, err error) {
+	body, err := c.getRequest("/orgInformation")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	return res, err
 }
 
 // AddDLPRule adds a URL filtering category
@@ -3073,4 +3213,18 @@ func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
 		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
 	}
 	return append(chunks, items)
+}
+
+type Names interface {
+	ObjName() string
+}
+
+// HasNAme checks if slices of objects have a name defined on them
+func HasNAme[t Names](objs []t, name string) bool {
+	for _, obj := range objs {
+		if obj.ObjName() == name {
+			return true
+		}
+	}
+	return false
 }
