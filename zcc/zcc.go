@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zepryspet/gozscaler/oneapi"
 	"io"
 	"log/slog"
 	"math"
@@ -111,6 +112,68 @@ func (p Device) String() string {
 	return jsonString(p)
 }
 
+// DeviceCleanup info for device cleanup
+type DeviceCleanup struct {
+	Active                string `json:"active,omitempty"`
+	AutoPurgeDays         string `json:"autoPurgeDays"`
+	AutoRemovalDays       string `json:"autoRemovalDays"`
+	CompanyID             string `json:"companyId,omitempty"`
+	CreatedBy             string `json:"createdBy,omitempty"`
+	DeviceExceedLimit     string `json:"deviceExceedLimit"`
+	EditedBy              string `json:"editedBy,omitempty"`
+	ForceRemoveType       string `json:"forceRemoveType,omitempty"`
+	ForceRemoveTypeString string `json:"forceRemoveTypeString,omitempty"`
+	ID                    string `json:"id,omitempty"`
+}
+
+// WebPrivacyInfo info for privacy settings
+type WebPrivacyInfo struct {
+	Active                        string `json:"active"`
+	CollectMachineHostname        string `json:"collectMachineHostname"`
+	CollectUserInfo               string `json:"collectUserInfo"`
+	CollectZdxLocation            string `json:"collectZdxLocation"`
+	DisableCrashlytics            string `json:"disableCrashlytics"`
+	EnablePacketCapture           string `json:"enablePacketCapture"`
+	ExportLogsForNonAdmin         string `json:"exportLogsForNonAdmin"`
+	GrantAccessToZscalerLogFolder string `json:"grantAccessToZscalerLogFolder"`
+	ID                            string `json:"id"`
+	OverrideT2ProtocolSetting     string `json:"overrideT2ProtocolSetting"`
+	RestrictRemotePacketCapture   string `json:"restrictRemotePacketCapture"`
+}
+
+// WebFailOpen updates fail open settings in portal
+type WebFailOpen struct {
+	Active                              string `json:"active"`
+	CaptivePortalWebSecDisableMinutes   int    `json:"captivePortalWebSecDisableMinutes"`
+	CompanyID                           string `json:"companyId"`
+	CreatedBy                           string `json:"createdBy"`
+	EditedBy                            string `json:"editedBy"`
+	EnableCaptivePortalDetection        int    `json:"enableCaptivePortalDetection"`
+	EnableFailOpen                      int    `json:"enableFailOpen"`
+	EnableStrictEnforcementPrompt       int    `json:"enableStrictEnforcementPrompt"`
+	EnableWebSecOnProxyUnreachable      string `json:"enableWebSecOnProxyUnreachable"`
+	EnableWebSecOnTunnelFailure         string `json:"enableWebSecOnTunnelFailure"`
+	ID                                  string `json:"id"`
+	StrictEnforcementPromptDelayMinutes int    `json:"strictEnforcementPromptDelayMinutes"`
+	StrictEnforcementPromptMessage      string `json:"strictEnforcementPromptMessage"`
+	TunnelFailureRetryCount             int    `json:"tunnelFailureRetryCount"`
+}
+
+// String prints the struct in json pretty format
+func (p WebPrivacyInfo) String() string {
+	return jsonString(p)
+}
+
+// String prints the struct in json pretty format
+func (p WebFailOpen) String() string {
+	return jsonString(p)
+}
+
+// String prints the struct in json pretty format
+func (p DeviceCleanup) String() string {
+	return jsonString(p)
+}
+
 // JsonString prints the struct in json pretty format
 func jsonString(v any) string {
 	s, e := json.MarshalIndent(v, "", "    ")
@@ -127,6 +190,7 @@ type Client struct {
 	RetryMax   int
 	Token      string
 	Log        *slog.Logger
+	Bearer     string
 }
 
 // Authenticate receives autentication information and returns the authentication token and error if exist
@@ -201,9 +265,124 @@ func NewClientLogger(cloudName, clientID, clientSecret, level string, w io.Write
 
 }
 
+// NewOneApiClient creates a new client using oneapi
+// vanity domain
+// client
+func NewOneApiClient(vanity, clientId, clientSecret string) (*Client, error) {
+	return NewOneApiClientLogger(vanity, clientId, clientSecret, os.Getenv("SLOG"), os.Stdout)
+}
+
+// NewOneApiClientLogger New client logger creates a new client with a custom slog logger
+// this uses client id and client secret
+func NewOneApiClientLogger(vanity, clientId, clientSecret, level string, w io.Writer) (*Client, error) {
+	token, err := oneapi.AuthSecret(vanity, clientId, clientSecret)
+	if err != nil {
+		return nil, err
+	}
+	opts := &slog.HandlerOptions{} //level info by default
+	if level == "DEBUG" {
+		opts.Level = slog.LevelDebug
+	}
+	BaseURL := "https://api.zsapi.net/zcc/papi/public/v1"
+	parent := slog.New(slog.NewJSONHandler(w, opts))
+	child := parent.With(slog.String("module", "gozscaler"),
+		slog.String("client", "zia"))
+	return &Client{
+		BaseURL: BaseURL,
+		HTTPClient: &http.Client{
+			Timeout: time.Second * 200,
+		},
+		RetryMax: 10,
+		Log:      child,
+		Bearer:   token,
+	}, nil
+}
+
 // GetDevices get all the devices enrolled in ZCC mobile portal
 func (c *Client) GetDevices() ([]Device, error) {
 	return getPaged[Device](c, 50, "/getDevices")
+}
+
+// GetDeviceCleanup obtains device cleanup configuration
+func (c *Client) GetDeviceCleanup() (res DeviceCleanup, err error) {
+	body, err := c.getRequest("/getDeviceCleanupInfo")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+// UpdateDeviceCleanup updates device cleanup configuration
+func (c *Client) UpdateDeviceCleanup(obj DeviceCleanup) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/setDeviceCleanupInfo"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetWebFailOpen obtains web fail openconfiguration
+func (c *Client) GetWebFailOpen() (WebFailOpen, error) {
+	body, err := c.getRequest("/webFailOpenPolicy/listByCompany")
+	if err != nil {
+		return WebFailOpen{}, err
+	}
+	res := []WebFailOpen{} //workaround to bug
+	err = json.Unmarshal(body, &res)
+	if err != nil || len(res) == 0 {
+		return WebFailOpen{}, err
+	}
+	return res[0], nil
+}
+
+// UpdateWebFailOpen updates web fail open configuration
+func (c *Client) UpdateWebFailOpen(obj WebFailOpen) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/webFailOpenPolicy/edit"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetWebPrivacyInfo obtains web privacy info configuration
+func (c *Client) GetWebPrivacyInfo() (res WebPrivacyInfo, err error) {
+	body, err := c.getRequest("/getWebPrivacyInfo")
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+// UpdateWebPrivacyInfo updates web privacy info configuration
+func (c *Client) UpdateWebPrivacyInfo(obj WebPrivacyInfo) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	path := "/setWebPrivacyInfo"
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetFilteredDevices get all the devices enrolled in ZCC mobile portal given the filters
@@ -398,7 +577,12 @@ func (c *Client) getRequest(path string) ([]byte, error) {
 func (c *Client) do(req *http.Request) ([]byte, error) {
 	retryMax := c.RetryMax
 	//Adding auth header
-	req.Header.Set("auth-token", c.Token)
+	//Adding auth header for onelogin
+	if c.Bearer != "" {
+		req.Header.Add("Authorization", "Bearer "+c.Bearer)
+	} else { //legacy api
+		req.Header.Set("auth-token", c.Token)
+	}
 	r, err := c.doWithOptions(req, retryMax)
 	if err != nil {
 		c.Log.Info("HTTP failed with error ",
@@ -482,6 +666,17 @@ func getReqBody(req *http.Request) (*http.Request, []byte) {
 	} else {
 		return req, nil
 	}
+}
+
+// Process and sends HTTP PUT requests
+func (c *Client) putRequest(path string, payload []byte) error {
+	data := bytes.NewBuffer(payload)
+	req, err := http.NewRequest(http.MethodPut, c.BaseURL+path, data)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(req)
+	return err
 }
 
 // retryAfter will return the number of seconds an API request needs to wait before trying again

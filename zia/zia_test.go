@@ -2,25 +2,16 @@ package zia
 
 import "testing"
 
-func TestValidateVanity(t *testing.T) {
-	valid := []string{
-		"z-234561",
-		"glastra",
-		"abd",
+func TestHasName(t *testing.T) {
+	fname := "myname"
+	nname := "notfound"
+	entry := PacFile{
+		Name: fname,
 	}
-	invalid := []string{
-		"vanity-admin",
-		"glastra.zslogin",
-		"https://vanity.zslogin.net",
+	if !HasNAme([]PacFile{entry}, fname) {
+		t.Errorf("name %v not found", fname)
 	}
-	for _, v := range valid {
-		if validateVanity(v) != nil {
-			t.Errorf("validateVanity() failed, vanity validation failed: %s", v)
-		}
-	}
-	for _, v := range invalid {
-		if validateVanity(v) == nil {
-			t.Errorf("validateVanity() failed, vanity validation succeded for invalid domain: %s", v)
-		}
+	if HasNAme([]PacFile{entry}, nname) {
+		t.Errorf("name %v found when it shouldn't", nname)
 	}
 }
