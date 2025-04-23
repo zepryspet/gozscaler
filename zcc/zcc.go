@@ -136,7 +136,7 @@ type WebPrivacyInfo struct {
 	EnablePacketCapture           string `json:"enablePacketCapture"`
 	ExportLogsForNonAdmin         string `json:"exportLogsForNonAdmin"`
 	GrantAccessToZscalerLogFolder string `json:"grantAccessToZscalerLogFolder"`
-	ID                            string `json:"id"`
+	ID                            string `json:"id,omitempty"`
 	OverrideT2ProtocolSetting     string `json:"overrideT2ProtocolSetting"`
 	RestrictRemotePacketCapture   string `json:"restrictRemotePacketCapture"`
 }

@@ -116,7 +116,7 @@ type SslRule struct {
 	State                  string        `json:"state,omitempty"`
 	Description            string        `json:"description,omitempty"`
 	LastModifiedTime       int           `json:"lastModifiedTime,omitempty"`
-	LastModifiedBy         string        `json:"lastModifiedBy,omitempty"`
+	LastModifiedBy         *NameID       `json:"lastModifiedBy,omitempty"`
 	DestIPGroups           []NameID      `json:"destIpGroups,omitempty"`
 	SourceIPGroups         []NameID      `json:"sourceIpGroups,omitempty"`
 	ProxyGateways          []NameID      `json:"proxyGateways,omitempty"`
@@ -3062,7 +3062,15 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	return io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err == nil {
+		slog.Debug("http response",
+			slog.String("url", req.URL.String()),
+			slog.String("body", string(body)), // logging payload and cookies
+			slog.String("method", req.Method),
+		)
+	}
+	return body, err
 }
 
 // retryAfter will return the number of seconds an API request needs to wait before trying again
