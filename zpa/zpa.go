@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zepryspet/gozscaler/oneapi"
 	"io"
 	"math"
 	"net/http"
@@ -1485,27 +1486,70 @@ func NewClient(BaseURL string, client_id string, client_secret string, CustomerI
 	if err != nil {
 		return c, err
 	}
+	return c, setPolicyId(c)
+}
+
+// setPolicyId gets the policy ids and saves them
+func setPolicyId(c *Client) (err error) {
 	//Getting policy ID
 	c.AccessID, err = c.GetAccessPolicyID()
 	if err != nil {
-		return c, err
+		return err
 	}
 	//Getting reauth policy ID
 	c.ReauthID, err = c.GetReAuthPolicyID()
 	if err != nil {
-		return c, err
+		return err
 	}
 	//Getting SIEM policy ID
 	c.SiemID, err = c.GetSIEMPolicyID()
 	if err != nil {
-		return c, err
+		return err
 	}
 	//Getting reauth policy ID
 	c.BypassID, err = c.GetBypassPolicyID()
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// NewOneApiClient creates a new client using oneapi
+// vanity domain
+// client
+func NewOneApiClient(vanity, clientId, clientSecret, CustomerId string) (*Client, error) {
+	c, err := NewOneApiClientLogger(vanity, clientId, clientSecret, CustomerId, os.Getenv("SLOG"), os.Stdout)
+	if err != nil {
 		return c, err
 	}
-	return c, err
+	return c, setPolicyId(c)
+}
+
+// NewOneApiClientLogger New client logger creates a new client with a custom slog logger
+// this uses client id and client secret
+func NewOneApiClientLogger(vanity, clientId, clientSecret, CustomerId, level string, w io.Writer) (*Client, error) {
+	token, err := oneapi.AuthSecret(vanity, clientId, clientSecret)
+	if err != nil {
+		return nil, err
+	}
+	opts := &slog.HandlerOptions{} //level info by default
+	if level == "DEBUG" {
+		opts.Level = slog.LevelDebug
+	}
+	BaseURL := "https://api.zsapi.net/zpa"
+	parent := slog.New(slog.NewJSONHandler(w, opts))
+	child := parent.With(slog.String("module", "gozscaler"),
+		slog.String("client", "zia"))
+	return &Client{
+		BaseURL: BaseURL,
+		HTTPClient: &http.Client{
+			Timeout: time.Second * 200,
+		},
+		RetryMax:   10,
+		Log:        child,
+		CustomerId: CustomerId,
+		Token:      token,
+	}, nil
 }
 
 // KeyGen function gets the authentication parameter and returns the bearer token which is the header that authenticates the requests
