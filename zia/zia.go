@@ -132,6 +132,11 @@ type SslRule struct {
 	DefaultRule            bool          `json:"defaultRule,omitempty"`
 }
 
+// ObjOrder gets rule order
+func (u SslRule) ObjOrder() int {
+	return u.Order
+}
+
 type DecryptAction struct {
 	Type                       string                  `json:"type,omitempty"`
 	DecryptSubActions          *DecryptSubActions      `json:"decryptSubActions,omitempty"`
@@ -172,39 +177,39 @@ func (u SslRule) Delete(c *Client) error {
 
 // UrlRule parses responses for urls policies
 type UrlRule struct {
-	ID                     int        `json:"id,omitempty"`
-	Name                   string     `json:"name"`
-	Order                  int        `json:"order,omitempty"`
-	Protocols              []string   `json:"protocols,omitempty"`
-	Locations              []NameID   `json:"locations,omitempty"`
-	Groups                 []NameID   `json:"groups,omitempty"`
-	Departments            []NameID   `json:"departments,omitempty"`
-	Users                  []NameID   `json:"users,omitempty"`
-	URLCategories          []string   `json:"urlCategories,omitempty"`
-	State                  string     `json:"state,omitempty"` //"ENABLED" or "DISABLED"
-	TimeWindows            []NameID   `json:"timeWindows,omitempty"`
-	SourceIpGroups         []NameID   `json:"sourceIpGroups,omitempty"`
-	Rank                   int        `json:"rank"`
-	RequestMethods         []string   `json:"requestMethods,omitempty"`
-	EndUserNotificationURL string     `json:"endUserNotificationUrl,omitempty"`
-	OverrideUsers          []NameID   `json:"overrideUsers,omitempty"`
-	OverrideGroups         []NameID   `json:"overrideGroups,omitempty"`
-	BlockOverride          bool       `json:"blockOverride,omitempty"`
-	TimeQuota              int        `json:"timeQuota,omitempty"`
-	SizeQuota              int        `json:"sizeQuota,omitempty"`
-	Description            string     `json:"description,omitempty"`
-	LocationGroups         []NameID   `json:"locationGroups,omitempty"`
-	Labels                 []NameID   `json:"labels,omitempty"`
-	ValidityStartTime      int        `json:"validityStartTime,omitempty"`
-	ValidityEndTime        int        `json:"validityEndTime,omitempty"`
-	ValidityTimeZoneID     string     `json:"validityTimeZoneId,omitempty"`
-	LastModifiedTime       int        `json:"lastModifiedTime,omitempty"`
-	LastModifiedBy         *NameID    `json:"lastModifiedBy,omitempty"`
-	EnforceTimeValidity    bool       `json:"enforceTimeValidity,omitempty"`
-	Action                 string     `json:"action,omitempty"`
-	Ciparule               bool       `json:"ciparule,omitempty"`
-	UserAgentTypes         []string   `json:"userAgentTypes,omitempty"`
-	CbiProfile             CbiProfile `json:"cbiProfile,omitempty"`
+	ID                     int         `json:"id,omitempty"`
+	Name                   string      `json:"name"`
+	Order                  int         `json:"order,omitempty"`
+	Protocols              []string    `json:"protocols,omitempty"`
+	Locations              []NameID    `json:"locations,omitempty"`
+	Groups                 []NameID    `json:"groups,omitempty"`
+	Departments            []NameID    `json:"departments,omitempty"`
+	Users                  []NameID    `json:"users,omitempty"`
+	URLCategories          []string    `json:"urlCategories,omitempty"`
+	State                  string      `json:"state,omitempty"` //"ENABLED" or "DISABLED"
+	TimeWindows            []NameID    `json:"timeWindows,omitempty"`
+	SourceIpGroups         []NameID    `json:"sourceIpGroups,omitempty"`
+	Rank                   int         `json:"rank"`
+	RequestMethods         []string    `json:"requestMethods,omitempty"`
+	EndUserNotificationURL string      `json:"endUserNotificationUrl,omitempty"`
+	OverrideUsers          []NameID    `json:"overrideUsers,omitempty"`
+	OverrideGroups         []NameID    `json:"overrideGroups,omitempty"`
+	BlockOverride          bool        `json:"blockOverride,omitempty"`
+	TimeQuota              int         `json:"timeQuota,omitempty"`
+	SizeQuota              int         `json:"sizeQuota,omitempty"`
+	Description            string      `json:"description,omitempty"`
+	LocationGroups         []NameID    `json:"locationGroups,omitempty"`
+	Labels                 []NameID    `json:"labels,omitempty"`
+	ValidityStartTime      int         `json:"validityStartTime,omitempty"`
+	ValidityEndTime        int         `json:"validityEndTime,omitempty"`
+	ValidityTimeZoneID     string      `json:"validityTimeZoneId,omitempty"`
+	LastModifiedTime       int         `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy         *NameID     `json:"lastModifiedBy,omitempty"`
+	EnforceTimeValidity    bool        `json:"enforceTimeValidity,omitempty"`
+	Action                 string      `json:"action,omitempty"`
+	Ciparule               bool        `json:"ciparule,omitempty"`
+	UserAgentTypes         []string    `json:"userAgentTypes,omitempty"`
+	CbiProfile             *CbiProfile `json:"cbiProfile,omitempty"`
 }
 
 type MalwareInspection struct {
@@ -843,6 +848,107 @@ func (p Department) String() string {
 	return jsonString(p)
 }
 
+type TimeInterval struct {
+	ID         int      `json:"id,omitempty"`
+	Name       string   `json:"name,omitempty"`
+	StartTime  int      `json:"startTime,omitempty"`
+	EndTime    int      `json:"endTime,omitempty"`
+	DaysOfWeek []string `json:"daysOfWeek,omitempty"`
+}
+
+// GetID return the name a string and the ID as int
+func (u TimeInterval) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
+// String prints the struct in json pretty format
+func (p TimeInterval) String() string {
+	return jsonString(p)
+}
+
+type CloudInstance struct {
+	InstanceID          int           `json:"instanceId,omitempty"`
+	InstanceType        string        `json:"instanceType,omitempty"`
+	InstanceName        string        `json:"instanceName,omitempty"`
+	ModifiedBy          *NameID       `json:"modifiedBy,omitempty"`
+	ModifiedAt          int           `json:"modifiedAt,omitempty"`
+	InstanceIdentifiers []Identifiers `json:"instanceIdentifiers,omitempty"`
+}
+
+type Identifiers struct {
+	InstanceID             int     `json:"instanceId,omitempty"`
+	InstanceIdentifier     string  `json:"instanceIdentifier,omitempty"`
+	InstanceIdentifierName string  `json:"instanceIdentifierName,omitempty"`
+	IdentifierType         string  `json:"identifierType,omitempty"`
+	ModifiedAt             int     `json:"modifiedAt,omitempty"`
+	ModifiedBy             *NameID `json:"modifiedBy,omitempty"`
+}
+
+// GetID return the name a string and the ID as int
+func (u CloudInstance) GetID() (string, int) {
+	return u.InstanceName, u.InstanceID
+}
+
+// String prints the struct in json pretty format
+func (p CloudInstance) String() string {
+	return jsonString(p)
+}
+
+type RiskProfile struct {
+	ID                        int      `json:"id,omitempty"`
+	ProfileName               string   `json:"profileName,omitempty"`
+	ProfileType               int      `json:"profileType,omitempty"`
+	RiskIndex                 []int    `json:"riskIndex,omitempty"`
+	Status                    string   `json:"status,omitempty"`
+	ExcludeCertificates       int      `json:"excludeCertificates,omitempty"`
+	Certifications            []string `json:"certifications,omitempty"`
+	PoorItemsOfService        string   `json:"poorItemsOfService,omitempty"`
+	AdminAuditLogs            string   `json:"adminAuditLogs,omitempty"`
+	DataBreach                string   `json:"dataBreach,omitempty"`
+	SourceIPRestrictions      string   `json:"sourceIpRestrictions,omitempty"`
+	MfaSupport                string   `json:"mfaSupport,omitempty"`
+	SslPinned                 string   `json:"sslPinned,omitempty"`
+	HTTPSecurityHeaders       string   `json:"httpSecurityHeaders,omitempty"`
+	Evasive                   string   `json:"evasive,omitempty"`
+	DNSCaaPolicy              string   `json:"dnsCaaPolicy,omitempty"`
+	WeakCipherSupport         string   `json:"weakCipherSupport,omitempty"`
+	PasswordStrength          string   `json:"passwordStrength,omitempty"`
+	SslCertValidity           string   `json:"sslCertValidity,omitempty"`
+	Vulnerability             string   `json:"vulnerability,omitempty"`
+	MalwareScanningForContent string   `json:"malwareScanningForContent,omitempty"`
+	FileSharing               string   `json:"fileSharing,omitempty"`
+	SslCertKeySize            string   `json:"sslCertKeySize,omitempty"`
+	VulnerableToHeartBleed    string   `json:"vulnerableToHeartBleed,omitempty"`
+	VulnerableToLogJam        string   `json:"vulnerableToLogJam,omitempty"`
+	VulnerableToPoodle        string   `json:"vulnerableToPoodle,omitempty"`
+	VulnerabilityDisclosure   string   `json:"vulnerabilityDisclosure,omitempty"`
+	SupportForWaf             string   `json:"supportForWaf,omitempty"`
+	RemoteScreenSharing       string   `json:"remoteScreenSharing,omitempty"`
+	SenderPolicyFramework     string   `json:"senderPolicyFramework,omitempty"`
+	DomainKeysIdentifiedMail  string   `json:"domainKeysIdentifiedMail,omitempty"`
+	DomainBasedMessageAuth    string   `json:"domainBasedMessageAuth,omitempty"`
+	DataEncryptionInTransit   []string `json:"dataEncryptionInTransit,omitempty"`
+	LastModTime               int      `json:"lastModTime,omitempty"`
+	CreateTime                int      `json:"createTime,omitempty"`
+	ModifiedBy                *NameID  `json:"modifiedBy,omitempty"`
+	CustomTags                []NameID `json:"customTags,omitempty"`
+}
+
+// ObjName returns the profile name
+func (u RiskProfile) ObjName() string {
+	return u.ProfileName
+}
+
+// GetID return the name a string and the ID as int
+func (u RiskProfile) GetID() (string, int) {
+	return u.ProfileName, u.ID
+}
+
+// String prints the struct in json pretty format
+func (p RiskProfile) String() string {
+	return jsonString(p)
+}
+
 // UserGroup parses UserGroup
 type UserGroup struct {
 	ID       int    `json:"id,omitempty"`
@@ -1170,6 +1276,114 @@ const (
 	REMOVELKG PacAction = "REMOVE_LKG" // remove known last good, if you sue this you need to provide the previous version that would be marked as good
 )
 
+// RuleType used in cloud app rules
+type RuleType string
+
+const (
+	SOCIAL_NETWORKING        RuleType = "SOCIAL_NETWORKING"
+	STREAMING_MEDIA          RuleType = "STREAMING_MEDIA"
+	WEBMAIL                  RuleType = "WEBMAIL"
+	INSTANT_MESSAGING        RuleType = "INSTANT_MESSAGING"
+	BUSINESS_PRODUCTIVITY    RuleType = "BUSINESS_PRODUCTIVITY"
+	ENTERPRISE_COLLABORATION RuleType = "ENTERPRISE_COLLABORATION"
+	SALES_AND_MARKETING      RuleType = "SALES_AND_MARKETING"
+	SYSTEM_AND_DEVELOPMENT   RuleType = "SYSTEM_AND_DEVELOPMENT"
+	CONSUMER                 RuleType = "CONSUMER"
+	HOSTING_PROVIDER         RuleType = "HOSTING_PROVIDER"
+	IT_SERVICES              RuleType = "IT_SERVICES"
+	FILE_SHARE               RuleType = "FILE_SHARE"
+	DNS_OVER_HTTPS           RuleType = "DNS_OVER_HTTPS"
+	HUMAN_RESOURCES          RuleType = "HUMAN_RESOURCES"
+	LEGAL                    RuleType = "LEGAL"
+	HEALTH_CARE              RuleType = "HEALTH_CARE"
+	FINANCE                  RuleType = "FINANCE"
+	CUSTOM_CAPP              RuleType = "CUSTOM_CAPP"
+	AI_ML                    RuleType = "AI_ML"
+)
+
+type CloudAppRule struct {
+	ID                        int                `json:"id,omitempty"`
+	Type                      string             `json:"type,omitempty"`
+	Order                     int                `json:"order,omitempty"`
+	TimeQuota                 int                `json:"timeQuota,omitempty"`
+	SizeQuota                 int                `json:"sizeQuota,omitempty"`
+	Description               string             `json:"description,omitempty"`
+	Locations                 []NameID           `json:"locations,omitempty"`
+	Groups                    []NameID           `json:"groups,omitempty"`
+	Departments               []NameID           `json:"departments,omitempty"`
+	Users                     []NameID           `json:"users,omitempty"`
+	Applications              []string           `json:"applications,omitempty"`
+	NumberOfApplications      int                `json:"numberOfApplications,omitempty"`
+	LocationGroups            []NameID           `json:"locationGroups,omitempty"`
+	Actions                   []string           `json:"actions,omitempty"`
+	State                     string             `json:"state,omitempty"`
+	TimeWindows               []NameID           `json:"timeWindows,omitempty"`
+	Rank                      int                `json:"rank,omitempty"`
+	ValidityStartTime         int                `json:"validityStartTime,omitempty"`
+	ValidityEndTime           int                `json:"validityEndTime,omitempty"`
+	ValidityTimeZoneID        string             `json:"validityTimeZoneId,omitempty"`
+	LastModifiedTime          int                `json:"lastModifiedTime,omitempty"`
+	LastModifiedBy            *NameID            `json:"lastModifiedBy,omitempty"`
+	EnforceTimeValidity       bool               `json:"enforceTimeValidity,omitempty"`
+	UserAgentTypes            []string           `json:"userAgentTypes,omitempty"`
+	Devices                   []NameID           `json:"devices,omitempty"`
+	DeviceGroups              []NameID           `json:"deviceGroups,omitempty"`
+	DeviceTrustLevels         []string           `json:"deviceTrustLevels,omitempty"`
+	TenancyProfileIds         []NameID           `json:"tenancyProfileIds,omitempty"`
+	AccessControl             string             `json:"accessControl,omitempty"`
+	CloudAppRiskProfile       *NameID            `json:"cloudAppRiskProfile,omitempty"`
+	Name                      string             `json:"name,omitempty"`
+	Labels                    []NameID           `json:"labels,omitempty"`
+	CbiProfile                *CbiProfile        `json:"cbiProfile,omitempty"`
+	UserRiskScoreLevels       []string           `json:"userRiskScoreLevels,omitempty"`
+	CloudAppInstances         []CloudInstanceRef `json:"cloudAppInstances,omitempty"`
+	CascadingEnabled          bool               `json:"cascadingEnabled,omitempty"`
+	SharingDomainProfiles     []NameID           `json:"sharingDomainProfiles,omitempty"`
+	FormSharingDomainProfiles []NameID           `json:"formSharingDomainProfiles,omitempty"`
+	EunEnabled                bool               `json:"eunEnabled,omitempty"`
+	EunTemplateID             int                `json:"eunTemplateId,omitempty"`
+	BrowserEunTemplateID      int                `json:"browserEunTemplateId,omitempty"`
+	Predefined                bool               `json:"predefined,omitempty"`
+}
+
+// GetID return the name a string and the ID as int
+func (u CloudAppRule) GetID() (string, int) {
+	return u.Name, u.ID
+}
+
+// ObjName return the name
+func (u CloudAppRule) ObjName() string {
+	return u.Name
+}
+
+// ObjOrder returns the rule order
+func (u CloudAppRule) ObjOrder() int {
+	return u.Order
+}
+
+// String prints the struct in json pretty format
+func (p CloudAppRule) String() string {
+	return jsonString(p)
+}
+
+type CloudInstanceRef struct {
+	ID   int    `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+type CloudApps struct {
+	Val                 int    `json:"val,omitempty"`
+	WebApplicationClass string `json:"webApplicationClass,omitempty"`
+	BackendName         string `json:"backendName,omitempty"`
+	OriginalName        string `json:"originalName,omitempty"`
+	Name                string `json:"name,omitempty"`
+	Deprecated          bool   `json:"deprecated,omitempty"`
+	Misc                bool   `json:"misc,omitempty"`
+	AppNotReady         bool   `json:"appNotReady,omitempty"`
+	UnderMigration      bool   `json:"underMigration,omitempty"`
+	AppCatModified      bool   `json:"appCatModified,omitempty"`
+}
+
 // Sandbox response
 type Sandbox struct {
 	Code              int    `json:"code"`
@@ -1302,7 +1516,7 @@ type DLPRule struct {
 	ExcludedGroups           []NameID  `json:"excludedGroups,omitempty"`
 	ExcludedDepartments      []NameID  `json:"excludedDepartments,omitempty"`
 	ExcludedUsers            []NameID  `json:"excludedUsers,omitempty"`
-	ZscalerIncidentReciever  bool      `json:"zscalerIncidentReciever,omitempty"`
+	ZscalerIncidentReceiver  bool      `json:"zscalerIncidentReceiver,omitempty"`
 	Severity                 string    `json:"severity,omitempty"`
 	SubRules                 []DLPRule `json:"subRules,omitempty"`
 	ParentRule               int       `json:"parentRule,omitempty"`
@@ -1585,6 +1799,51 @@ func (c *Client) GetUrlRules() ([]UrlRule, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+// GetTimeIntervals gets all configured time intervals
+func (c *Client) GetTimeIntervals() (res []TimeInterval, err error) {
+	return genGet(c, "/timeIntervals", res)
+}
+
+// AddTimeInterval adds a time interval
+func (c *Client) AddTimeInterval(obj TimeInterval) (int, error) {
+	return genPost(c, "/timeIntervals", obj)
+}
+
+// GetCloudAppRules gets all configured cloud apps based on type
+func (c *Client) GetCloudAppRules(ruleType RuleType) (res []CloudAppRule, err error) {
+	return genGet(c, "/webApplicationRules/"+string(ruleType), res)
+}
+
+// AddCloudAppRule adds a cloud app rule interval
+func (c *Client) AddCloudAppRule(obj CloudAppRule, ruleType RuleType) (int, error) {
+	return genPost(c, "/webApplicationRules/"+string(ruleType), obj)
+}
+
+// GetRiskProfiles gets all configured time intervals
+func (c *Client) GetRiskProfiles() (res []RiskProfile, err error) {
+	return genGet(c, "/riskProfiles", res)
+}
+
+// AddRiskProfile adds a time interval
+func (c *Client) AddRiskProfile(obj RiskProfile) (int, error) {
+	return genPost(c, "/riskProfiles", obj)
+}
+
+// UpdateDnsRule updates a dns filtering rule
+func (c *Client) UpdateRiskProfile(obj RiskProfile) error {
+	return genPut(c, "/riskProfiles", obj)
+}
+
+// GetCloudInstances gets all configured cloud instances
+func (c *Client) GetCloudInstances() (res []CloudInstance, err error) {
+	return genGet(c, "/cloudApplicationInstances", res)
+}
+
+// AddCloudInstance adds a cloud instance
+func (c *Client) AddCloudInstance(obj CloudInstance) (int, error) {
+	return genPost(c, "/cloudApplicationInstances", obj)
 }
 
 // AddUrlRule adds a URL filtering rules
@@ -2970,6 +3229,15 @@ func (c *Client) getRequest(path string) ([]byte, error) {
 	return c.do(req)
 }
 
+// getReq Process and sends HTTP GET requests, returning unmershalled element
+func (c *Client) getReq(path string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.do(req)
+}
+
 // Process and sends HTTP PUT requests
 func (c *Client) putRequest(path string, payload []byte) error {
 	data := bytes.NewBuffer(payload)
@@ -3235,4 +3503,54 @@ func HasNAme[t Names](objs []t, name string) bool {
 		}
 	}
 	return false
+}
+
+type Order interface {
+	ObjOrder() int
+}
+
+// GetLast gets the last rule + 1
+func GetLast[t Order](objs []t) int {
+	last := 0
+	for _, obj := range objs {
+		if obj.ObjOrder() > last {
+			last = obj.ObjOrder()
+		}
+	}
+	return last + 1
+}
+
+// genGet generic http get with unmarshalling
+func genGet[K any](c *Client, path string, obj []K) ([]K, error) {
+	body, err := c.getRequest(path)
+	if err != nil {
+		return nil, err
+	}
+	return obj, json.Unmarshal(body, &obj)
+}
+
+// genPost generic http post with unmarshalling
+func genPost[K Zid](c *Client, path string, obj K) (int, error) {
+	postBody, _ := json.Marshal(obj)
+	body, err := c.postRequest(path, postBody)
+	if err != nil {
+		return 0, err
+	}
+	_, id := obj.GetID()
+	return id, json.Unmarshal(body, &obj)
+}
+
+// genPut generic http put with unmarshalling
+func genPut[K Zid](c *Client, path string, obj K) error {
+	postBody, e := json.Marshal(obj)
+	if e != nil {
+		return e
+	}
+	_, id := obj.GetID()
+	path = path + "/" + strconv.Itoa(id)
+	err := c.putRequest(path, postBody)
+	if err != nil {
+		return err
+	}
+	return nil
 }
