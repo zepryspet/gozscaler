@@ -47,6 +47,8 @@ type Client struct {
 	Log        *slog.Logger
 	//oneapi auth
 	Bearer string
+	//Meta saves user information
+	Meta string
 }
 
 type DnsRule struct {
@@ -1741,6 +1743,7 @@ func NewClientLogger(cloud, admin, pass, apiKey, level string, w io.Writer) (*Cl
 		},
 		RetryMax: 10,
 		Log:      child,
+		Meta:     admin,
 	}, nil
 }
 
@@ -1774,6 +1777,7 @@ func NewOneApiClientLogger(vanity, clientId, clientSecret, level string, w io.Wr
 		RetryMax: 10,
 		Log:      child,
 		Bearer:   token,
+		Meta:     "oneapi@" + vanity,
 	}, nil
 }
 
