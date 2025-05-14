@@ -23,11 +23,17 @@ type ZIAError struct {
 	Err string
 	//Code this is the http status code
 	Code int
+	//http body
+	Body []byte
 }
 
 func (e *ZIAError) Error() string {
 	if e.Code != 0 {
-		return e.Err + ", HTTP status code: " + strconv.Itoa(e.Code)
+		ret := e.Err + ", HTTP status code: " + strconv.Itoa(e.Code)
+		if len(e.Body) > 0 {
+			ret += ", body: " + string(e.Body)
+		}
+		return ret
 	}
 	return e.Err
 }
@@ -3263,13 +3269,6 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 			slog.String("error", fmt.Sprint(err)),
 			slog.String("method", req.Method))
 	}
-	c.Log.Info("HTTP request completed",
-		slog.String("url", req.URL.String()),
-		slog.String("method", req.Method))
-	c.Log.Debug("HTTP request completed",
-		slog.String("url", req.URL.String()),
-		slog.String("response body", string(r)),
-		slog.String("method", req.Method))
 	return r, err
 }
 
@@ -3338,6 +3337,14 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 			slog.String("method", req.Method),
 		)
 	}
+	c.Log.Info("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("response code", strconv.Itoa(resp.StatusCode)),
+		slog.String("response body", string(body)),
+		slog.String("method", req.Method))
 	return body, err
 }
 
@@ -3371,11 +3378,12 @@ func getReqBody(req *http.Request) (*http.Request, []byte) {
 // httpStatusCheck receives an http response and returns an error based on zscaler documentation.
 // From https://help.zscaler.com/zia/about-error-handling
 func httpStatusCheck(resp *http.Response) error {
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 { //success
 		return nil
-	} else if resp.StatusCode == 400 {
-		b, _ := io.ReadAll(resp.Body)
-		return &ZIAError{Err: "HTTP error: Invalid or bad request" + string(b), Code: resp.StatusCode}
+	}
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == 400 {
+		return &ZIAError{Err: "HTTP error: Invalid or bad request", Code: resp.StatusCode, Body: b}
 	} else if resp.StatusCode == 401 {
 		return &ZIAError{Err: "HTTP error: Session is not authenticated or timed out", Code: resp.StatusCode}
 	} else if resp.StatusCode == 403 {
@@ -3387,11 +3395,11 @@ func httpStatusCheck(resp *http.Response) error {
 	} else if resp.StatusCode == 429 {
 		return &ZIAError{Err: "HTTP error: Exceeded the rate limit or quota. The response includes a Retry-After value.", Code: resp.StatusCode}
 	} else if resp.StatusCode == 500 {
-		return &ZIAError{Err: "HTTP error: Unexpected error", Code: resp.StatusCode}
+		return &ZIAError{Err: "HTTP error: Unexpected error", Code: resp.StatusCode, Body: b}
 	} else if resp.StatusCode == 503 {
-		return &ZIAError{Err: "HTTP error: Service is temporarily unavailable", Code: resp.StatusCode}
+		return &ZIAError{Err: "HTTP error: Service is temporarily unavailable", Code: resp.StatusCode, Body: b}
 	} else {
-		return &ZIAError{Err: "Invalid HTTP response code", Code: resp.StatusCode}
+		return &ZIAError{Err: "Invalid HTTP response code", Code: resp.StatusCode, Body: b}
 	}
 }
 

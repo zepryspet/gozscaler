@@ -25,6 +25,19 @@ type ZCCError struct {
 	Err string
 	//Code this is the http status code
 	Code int
+	//http body
+	Body []byte
+}
+
+func (e *ZCCError) Error() string {
+	if e.Code != 0 {
+		ret := e.Err + ", HTTP status code: " + strconv.Itoa(e.Code)
+		if len(e.Body) > 0 {
+			ret += ", body: " + string(e.Body)
+		}
+		return ret
+	}
+	return e.Err
 }
 
 // DeviceFilter filters enrolled devices.
@@ -59,13 +72,6 @@ const (
 	DeviceMacOS   DeviceType = 4
 	DeviceLinux   DeviceType = 5
 )
-
-func (e *ZCCError) Error() string {
-	if e.Code != 0 {
-		return e.Err + ", HTTP status code: " + strconv.Itoa(e.Code)
-	}
-	return e.Err
-}
 
 // myToken parses the authentication request
 type auth struct {
@@ -227,7 +233,17 @@ func (u *CustomInt) UnmarshalJSON(data []byte) error {
 		var f float64
 		err1 := json.Unmarshal(data, &f)
 		if err1 != nil {
-			return err1
+			//try as a string
+			var s string
+			err2 := json.Unmarshal(data, &s)
+			if err2 != nil {
+				return err2
+			}
+			n, err3 := strconv.Atoi(s)
+			if err3 != nil {
+				return err3
+			}
+			*u = CustomInt(n)
 		}
 		*u = CustomInt(f)
 		return nil
@@ -236,66 +252,131 @@ func (u *CustomInt) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type CustomString string
+
+func (u *CustomString) UnmarshalJSON(data []byte) error {
+	var tmp string
+	err := json.Unmarshal(data, &tmp) //tries with int first
+	if err != nil {
+		//unmarshall as float
+		var f float64
+		err1 := json.Unmarshal(data, &f)
+		if err1 != nil {
+			//try as a string
+			var s string
+			err2 := json.Unmarshal(data, &s)
+			if err2 != nil {
+				return err2
+			}
+			n, err3 := strconv.Atoi(s)
+			if err3 != nil {
+				return err3
+			}
+			*u = CustomString(strconv.Itoa(n))
+		}
+		*u = CustomString(strconv.Itoa(int(f)))
+		return nil
+	}
+	*u = CustomString(tmp)
+	return nil
+}
+
 type AppProfile struct {
-	Active                       CustomInt         `json:"active,omitempty"`
-	AllowUnreachablePac          bool              `json:"allowUnreachablePac,omitempty"`
-	AndroidPolicy                *AndroidPolicy    `json:"androidPolicy,omitempty"`
-	AppIdentityNames             []string          `json:"appIdentityNames,omitempty"`
-	AppServiceIds                []int             `json:"appServiceIds,omitempty"`
-	AppServiceNames              []string          `json:"appServiceNames,omitempty"`
-	BypassAppIds                 []int             `json:"bypassAppIds,omitempty"`
-	BypassCustomAppIds           []int             `json:"bypassCustomAppIds,omitempty"`
-	Description                  string            `json:"description,omitempty"`
-	DeviceGroupIds               []int             `json:"deviceGroupIds,omitempty"`
-	DeviceGroupNames             []string          `json:"deviceGroupNames,omitempty"`
-	DeviceType                   string            `json:"device_type,omitempty"`
-	DisasterRecovery             *DisasterRecovery `json:"disasterRecovery,omitempty"`
-	EnableDeviceGroups           CustomInt         `json:"enableDeviceGroups,omitempty"`
-	ForwardingProfileID          int               `json:"forwardingProfileId,omitempty"`
-	GroupAll                     CustomInt         `json:"groupAll,omitempty"`
-	GroupIds                     []int             `json:"groupIds,omitempty"`
-	GroupNames                   []string          `json:"groupNames,omitempty"`
-	HighlightActiveControl       CustomInt         `json:"highlightActiveControl,omitempty"`
-	ID                           CustomInt         `json:"id,omitempty"`
-	IosPolicy                    *IosPolicy        `json:"iosPolicy,omitempty"`
-	LinuxPolicy                  *LinuxPolicy      `json:"linuxPolicy,omitempty"`
-	LogFileSize                  CustomInt         `json:"logFileSize,omitempty"`
-	LogLevel                     CustomInt         `json:"logLevel,omitempty"`
-	LogMode                      CustomInt         `json:"logMode,omitempty"`
+	Active                       CustomInt         `json:"active"`
+	AllowUnreachablePac          bool              `json:"allowUnreachablePac"`
+	AndroidPolicy                *AndroidPolicy    `json:"androidPolicy"`
+	AppIdentityNames             []string          `json:"appIdentityNames"`
+	AppServiceIds                []int             `json:"appServiceIds"`
+	AppServiceNames              []string          `json:"appServiceNames"`
+	BypassAppIds                 []int             `json:"bypassAppIds"`
+	BypassCustomAppIds           []int             `json:"bypassCustomAppIds"`
+	Description                  string            `json:"description"`
+	DeviceGroupIds               []int             `json:"deviceGroupIds"`
+	DeviceGroupNames             []string          `json:"deviceGroupNames"`
+	DeviceType                   int               `json:"device_type"`
+	DisasterRecovery             *DisasterRecovery `json:"disasterRecovery"`
+	EnableDeviceGroups           CustomInt         `json:"enableDeviceGroups"`
+	ForwardingProfileID          int               `json:"forwardingProfileId"`
+	GroupAll                     CustomInt         `json:"groupAll"`
+	GroupIds                     []int             `json:"groupIds"`
+	GroupNames                   []string          `json:"groupNames"`
+	HighlightActiveControl       CustomInt         `json:"highlightActiveControl"`
+	ID                           CustomInt         `json:"id"`
+	IosPolicy                    *IosPolicy        `json:"iosPolicy"`
+	LinuxPolicy                  *LinuxPolicy      `json:"linuxPolicy"`
+	LogFileSize                  CustomInt         `json:"logFileSize"`
+	LogLevel                     CustomInt         `json:"logLevel"`
+	LogMode                      CustomInt         `json:"logMode"`
 	MacPolicy                    *MacPolicy        `json:"macPolicy,omitempty"`
-	Name                         string            `json:"name,omitempty"`
-	PacURL                       string            `json:"pac_url,omitempty"`
+	Name                         string            `json:"name"`
+	PacURL                       string            `json:"pac_url"`
 	PolicyExtension              *PolicyExtension  `json:"policyExtension,omitempty"`
-	ReactivateWebSecurityMinutes string            `json:"reactivateWebSecurityMinutes,omitempty"`
-	ReauthPeriod                 string            `json:"reauth_period,omitempty"`
-	RuleOrder                    CustomInt         `json:"ruleOrder,omitempty"`
-	SendDisableServiceReason     CustomInt         `json:"sendDisableServiceReason,omitempty"`
-	TunnelZappTraffic            CustomInt         `json:"tunnelZappTraffic,omitempty"`
-	UserIds                      []int             `json:"userIds,omitempty"`
-	UserNames                    []string          `json:"userNames,omitempty"`
+	ReactivateWebSecurityMinutes string            `json:"reactivateWebSecurityMinutes"`
+	ReauthPeriod                 string            `json:"reauth_period"`
+	RuleOrder                    CustomInt         `json:"ruleOrder"`
+	SendDisableServiceReason     CustomInt         `json:"sendDisableServiceReason"`
+	TunnelZappTraffic            CustomInt         `json:"tunnelZappTraffic"`
+	UserIds                      []int             `json:"userIds"`
+	UserNames                    []string          `json:"userNames"`
 	WindowsPolicy                *WindowsPolicy    `json:"windowsPolicy,omitempty"`
-	ZiaPostureConfigID           int               `json:"ziaPostureConfigId,omitempty"`
+	ZiaPostureConfigID           int               `json:"ziaPostureConfigId"`
+	PolicyToken                  string            `json:"policyToken"`
+	//fwd profile
+	OnNetPolicy *OnNetPolicy `json:"onNetPolicy,omitempty"`
+	//missing fields from docs
+	LogoutPassword                    string    `json:"logout_password"`
+	UninstallPassword                 string    `json:"uninstall_password"`
+	DisablePassword                   string    `json:"disable_password"`
+	InstallSslCerts                   CustomInt `json:"install_ssl_certs"`
+	DisableLoopBackRestriction        CustomInt `json:"disableLoopBackRestriction"`
+	RemoveExemptedContainers          CustomInt `json:"removeExemptedContainers"`
+	OverrideWPAD                      CustomInt `json:"overrideWPAD"`
+	RestartWinHTTPSvc                 CustomInt `json:"restartWinHttpSvc"`
+	CacheSystemProxy                  CustomInt `json:"cacheSystemProxy"`
+	PrioritizeIPv4                    CustomInt `json:"prioritizeIPv4"`
+	PacType                           CustomInt `json:"pacType"`
+	PacDataPath                       string    `json:"pacDataPath"`
+	DisableParallelIpv4AndIPv6        CustomInt `json:"disableParallelIpv4AndIPv6"`
+	WfpDriver                         CustomInt `json:"wfpDriver"`
+	FlowLoggerConfig                  string    `json:"flowLoggerConfig"`
+	TriggerDomainProfleDetection      CustomInt `json:"triggerDomainProfleDetection"`
+	AllInboundTrafficConfig           string    `json:"allInboundTrafficConfig"`
+	InstallWindowsFirewallInboundRule CustomInt `json:"installWindowsFirewallInboundRule"`
+	CaptivePortalConfig               string    `json:"captivePortalConfig"`
+	ForceLocationRefreshSccm          CustomInt `json:"forceLocationRefreshSccm"`
+	Groups                            []any     `json:"groups"`
+	DeviceGroups                      []any     `json:"deviceGroups"`
+	Users                             []any     `json:"users"`
+	SccmConfig                        string    `json:"sccmConfig"`
 }
 
 func (p AppProfile) String() string {
 	return jsonString(p)
 }
 
+type OnNetPolicy struct {
+	ID                        string    `json:"id"`
+	Name                      string    `json:"name"`
+	ConditionType             CustomInt `json:"conditionType"`
+	PredefinedTrustedNetworks bool      `json:"predefinedTrustedNetworks"`
+	PredefinedTnAll           bool      `json:"predefinedTnAll"`
+}
+
 type AndroidPolicy struct {
-	AllowedApps       string `json:"allowedApps,omitempty"`
-	BillingDay        string `json:"billingDay,omitempty"`
-	BypassAndroidApps string `json:"bypassAndroidApps,omitempty"`
-	BypassMmsApps     string `json:"bypassMmsApps,omitempty"`
-	CustomText        string `json:"customText,omitempty"`
-	DisablePassword   string `json:"disablePassword,omitempty"`
-	EnableVerboseLog  string `json:"enableVerboseLog,omitempty"`
-	Enforced          string `json:"enforced,omitempty"`
-	InstallCerts      string `json:"installCerts,omitempty"`
-	Limit             string `json:"limit,omitempty"`
-	LogoutPassword    string `json:"logoutPassword,omitempty"`
-	QuotaRoaming      string `json:"quotaRoaming,omitempty"`
-	UninstallPassword string `json:"uninstallPassword,omitempty"`
-	Wifissid          string `json:"wifissid,omitempty"`
+	AllowedApps       string `json:"allowedApps"`
+	BillingDay        string `json:"billingDay"`
+	BypassAndroidApps string `json:"bypassAndroidApps"`
+	BypassMmsApps     string `json:"bypassMmsApps"`
+	CustomText        string `json:"customText"`
+	DisablePassword   string `json:"disablePassword"`
+	EnableVerboseLog  string `json:"enableVerboseLog"`
+	Enforced          string `json:"enforced"`
+	InstallCerts      string `json:"installCerts"`
+	Limit             string `json:"limit"`
+	LogoutPassword    string `json:"logoutPassword"`
+	QuotaRoaming      string `json:"quotaRoaming"`
+	UninstallPassword string `json:"uninstallPassword"`
+	Wifissid          string `json:"wifissid"`
 }
 
 type DisasterRecovery struct {
@@ -317,67 +398,69 @@ type DisasterRecovery struct {
 	ZpaSecretKeyName    string `json:"zpaSecretKeyName,omitempty"`
 }
 type IosPolicy struct {
-	DisablePassword        string `json:"disablePassword,omitempty"`
-	Ipv6Mode               string `json:"ipv6Mode,omitempty"`
-	LogoutPassword         string `json:"logoutPassword,omitempty"`
-	Passcode               string `json:"passcode,omitempty"`
-	ShowVPNTunNotification string `json:"showVPNTunNotification,omitempty"`
-	UninstallPassword      string `json:"uninstallPassword,omitempty"`
+	DisablePassword        string `json:"disablePassword"`
+	Ipv6Mode               string `json:"ipv6Mode"`
+	LogoutPassword         string `json:"logoutPassword"`
+	Passcode               string `json:"passcode"`
+	ShowVPNTunNotification string `json:"showVPNTunNotification"`
+	UninstallPassword      string `json:"uninstallPassword"`
 }
 
 type LinuxPolicy struct {
-	DisablePassword   string `json:"disablePassword,omitempty"`
-	InstallCerts      string `json:"installCerts,omitempty"`
-	LogoutPassword    string `json:"logoutPassword,omitempty"`
-	UninstallPassword string `json:"uninstallPassword,omitempty"`
+	DisablePassword   string `json:"disablePassword"`
+	InstallCerts      string `json:"installCerts"`
+	LogoutPassword    string `json:"logoutPassword"`
+	UninstallPassword string `json:"uninstallPassword"`
 }
 
 type MacPolicy struct {
-	AddIfscopeRoute                          string `json:"addIfscopeRoute,omitempty"`
-	CacheSystemProxy                         string `json:"cacheSystemProxy,omitempty"`
-	ClearArpCache                            string `json:"clearArpCache,omitempty"`
-	DisablePassword                          string `json:"disablePassword,omitempty"`
-	DNSPriorityOrdering                      string `json:"dnsPriorityOrdering,omitempty"`
-	DNSPriorityOrderingForTrustedDNSCriteria string `json:"dnsPriorityOrderingForTrustedDnsCriteria,omitempty"`
-	EnableApplicationBasedBypass             string `json:"enableApplicationBasedBypass,omitempty"`
-	EnableZscalerFirewall                    string `json:"enableZscalerFirewall,omitempty"`
-	InstallCerts                             string `json:"installCerts,omitempty"`
-	LogoutPassword                           string `json:"logoutPassword,omitempty"`
-	PersistentZscalerFirewall                string `json:"persistentZscalerFirewall,omitempty"`
-	UninstallPassword                        string `json:"uninstallPassword,omitempty"`
+	AddIfscopeRoute                          string `json:"addIfscopeRoute"`
+	CacheSystemProxy                         string `json:"cacheSystemProxy"`
+	ClearArpCache                            string `json:"clearArpCache"`
+	DisablePassword                          string `json:"disablePassword"`
+	DNSPriorityOrdering                      string `json:"dnsPriorityOrdering"`
+	DNSPriorityOrderingForTrustedDNSCriteria string `json:"dnsPriorityOrderingForTrustedDnsCriteria"`
+	EnableApplicationBasedBypass             string `json:"enableApplicationBasedBypass"`
+	EnableZscalerFirewall                    string `json:"enableZscalerFirewall"`
+	InstallCerts                             string `json:"installCerts"`
+	LogoutPassword                           string `json:"logoutPassword"`
+	PersistentZscalerFirewall                string `json:"persistentZscalerFirewall"`
+	UninstallPassword                        string `json:"uninstallPassword"`
 }
 
 type WindowsPolicy struct {
-	CacheSystemProxy                  int    `json:"cacheSystemProxy,omitempty"`
-	CaptivePortalConfig               string `json:"captivePortalConfig,omitempty"`
-	DisableLoopBackRestriction        int    `json:"disableLoopBackRestriction,omitempty"`
-	DisableParallelIpv4AndIpv6        string `json:"disableParallelIpv4andIpv6,omitempty"`
-	DisablePassword                   string `json:"disablePassword,omitempty"`
-	FlowLoggerConfig                  string `json:"flowLoggerConfig,omitempty"`
-	ForceLocationRefreshSccm          int    `json:"forceLocationRefreshSccm,omitempty"`
-	InstallCerts                      string `json:"installCerts,omitempty"`
-	InstallWindowsFirewallInboundRule int    `json:"installWindowsFirewallInboundRule,omitempty"`
-	LogoutPassword                    string `json:"logoutPassword,omitempty"`
-	OverrideWPAD                      int    `json:"overrideWPAD,omitempty"`
-	PacDataPath                       string `json:"pacDataPath,omitempty"`
-	PacType                           int    `json:"pacType,omitempty"`
-	PrioritizeIPv4                    int    `json:"prioritizeIPv4,omitempty"`
-	RemoveExemptedContainers          int    `json:"removeExemptedContainers,omitempty"`
-	RestartWinHTTPSvc                 int    `json:"restartWinHttpSvc,omitempty"`
-	TriggerDomainProfleDetection      int    `json:"triggerDomainProfleDetection,omitempty"`
-	UninstallPassword                 string `json:"uninstallPassword,omitempty"`
-	WfpDriver                         int    `json:"wfpDriver,omitempty"`
+	CacheSystemProxy                  int    `json:"cacheSystemProxy"`
+	CaptivePortalConfig               string `json:"captivePortalConfig"`
+	DisableLoopBackRestriction        int    `json:"disableLoopBackRestriction"`
+	DisableParallelIpv4AndIpv6        string `json:"disableParallelIpv4andIpv6"`
+	DisablePassword                   string `json:"disablePassword"`
+	FlowLoggerConfig                  string `json:"flowLoggerConfig"`
+	ForceLocationRefreshSccm          int    `json:"forceLocationRefreshSccm"`
+	InstallCerts                      string `json:"installCerts"`
+	InstallWindowsFirewallInboundRule int    `json:"installWindowsFirewallInboundRule"`
+	LogoutPassword                    string `json:"logoutPassword"`
+	OverrideWPAD                      int    `json:"overrideWPAD"`
+	PacDataPath                       string `json:"pacDataPath"`
+	PacType                           int    `json:"pacType"`
+	PrioritizeIPv4                    int    `json:"prioritizeIPv4"`
+	RemoveExemptedContainers          int    `json:"removeExemptedContainers"`
+	RestartWinHTTPSvc                 int    `json:"restartWinHttpSvc"`
+	TriggerDomainProfleDetection      int    `json:"triggerDomainProfleDetection"`
+	UninstallPassword                 string `json:"uninstallPassword"`
+	WfpDriver                         int    `json:"wfpDriver"`
 }
 
 type PolicyExtension struct {
 	AdvanceZpaReauth                                bool              `json:"advanceZpaReauth,omitempty"`
-	AdvanceZpaReauthTime                            int               `json:"advanceZpaReauthTime,omitempty"`
+	AdvanceZpaReauthTime                            CustomInt         `json:"advanceZpaReauthTime,omitempty"`
+	AllowClientCertCachingForWebView2               string            `json:"allowClientCertCachingForWebView2,omitempty""`
 	CustomDNS                                       string            `json:"customDNS,omitempty"`
 	DdilConfig                                      string            `json:"ddilConfig,omitempty"`
 	DeleteDHCPOption121Routes                       string            `json:"deleteDHCPOption121Routes,omitempty"`
 	DisableDNSRouteExclusion                        CustomInt         `json:"disableDNSRouteExclusion,omitempty"`
 	DropQuicTraffic                                 CustomInt         `json:"dropQuicTraffic,omitempty"`
 	EnableAntiTampering                             string            `json:"enableAntiTampering,omitempty"`
+	EnableFlowBasedTunnel                           CustomInt         `json:"enableFlowBasedTunnel,omitempty"`
 	EnableSetProxyOnVPNAdapters                     CustomInt         `json:"enableSetProxyOnVPNAdapters,omitempty"`
 	EnableZCCRevert                                 string            `json:"enableZCCRevert,omitempty"`
 	EnableZdpService                                string            `json:"enableZdpService,omitempty"`
@@ -402,6 +485,7 @@ type PolicyExtension struct {
 	PurgeKerberosPreferredDCCache                   string            `json:"purgeKerberosPreferredDCCache,omitempty"`
 	ReactivateAntiTamperingTime                     CustomInt         `json:"reactivateAntiTamperingTime,omitempty"`
 	SourcePortBasedBypasses                         string            `json:"sourcePortBasedBypasses,omitempty"`
+	SwitchFocusToNotification                       string            `json:"switchFocusToNotification"`
 	TruncateLargeUDPDNSResponse                     CustomInt         `json:"truncateLargeUDPDNSResponse,omitempty"`
 	UpdateDNSSearchOrder                            CustomInt         `json:"updateDnsSearchOrder,omitempty"`
 	UseDefaultAdapterForDNS                         string            `json:"useDefaultAdapterForDNS,omitempty"`
@@ -640,7 +724,42 @@ func (c *Client) GetForwardingProfiles() ([]ForwardingProfile, error) {
 func (c *Client) GetAppProfiles(d DeviceType) ([]AppProfile, error) {
 	q := url.Values{}
 	q.Set("deviceType", d.Value())
-	return getPagedQuery[AppProfile](c, 50, "/web/policy/listByCompany", q)
+	profiles, err := getPagedQuery[AppProfile](c, 50, "/web/policy/listByCompany", q)
+	if err != nil {
+		return nil, err
+	}
+	for i, _ := range profiles {
+		if profiles[i].OnNetPolicy != nil {
+			id := profiles[i].OnNetPolicy.ID
+			iid, errint := strconv.Atoi(id)
+			if errint == nil {
+				profiles[i].ForwardingProfileID = iid
+			}
+		}
+		profiles[i].DeviceType = int(d)
+		if d == DeviceWindows {
+			profiles[i].WindowsPolicy = toPolicy(&WindowsPolicy{}, profiles[i])
+		} else if d == DeviceMacOS {
+			profiles[i].MacPolicy = toPolicy(&MacPolicy{}, profiles[i])
+		} else if d == DeviceLinux {
+			profiles[i].LinuxPolicy = toPolicy(&LinuxPolicy{}, profiles[i])
+		} else if d == DeviceAndroid {
+			profiles[i].AndroidPolicy = toPolicy(&AndroidPolicy{}, profiles[i])
+		} else if d == DeviceIos {
+			profiles[i].IosPolicy = toPolicy(&IosPolicy{}, profiles[i])
+		}
+	}
+	return profiles, nil
+}
+
+// toPolicy hack to unmarchal to policy type
+func toPolicy[K any](in *K, profile AppProfile) *K {
+	bytes, err := json.Marshal(profile)
+	if err != nil {
+		return in
+	}
+	json.Unmarshal(bytes, &in)
+	return in
 }
 
 // GetDeviceCleanup obtains device cleanup configuration
@@ -762,19 +881,10 @@ func (c *Client) AddForwardingProfile(profile ForwardingProfile) (string, error)
 	return res.ID, err
 }
 
-// AddAppProfile adds an app filtering rules
-func (c *Client) AddAppProfile(profile AppProfile) (int, error) {
+// AddAppProfile adds or updates an app profile
+func (c *Client) AddAppProfile(profile AppProfile) error {
 	postBody, _ := json.Marshal(profile)
-	body, err := c.postRequest("/web/policy/edit", postBody)
-	if err != nil {
-		return 0, err
-	}
-	res := AppProfile{}
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return 0, err
-	}
-	return int(res.ID), err
+	return c.putRequest("/web/policy/edit", postBody)
 }
 
 // GetServiceStatus uses the downloadServiceStatus public api which downloads all enrolled devices in a single call
@@ -961,17 +1071,10 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 			slog.String("method", req.Method))
 		return r, err
 	}
-	c.Log.Info("HTTP request completed",
-		slog.String("url", req.URL.String()),
-		slog.String("method", req.Method))
-	c.Log.Debug("HTTP request completed",
-		slog.String("url", req.URL.String()),
-		slog.String("response body", string(r)),
-		slog.String("method", req.Method))
 	return r, err
 }
 
-// doWithOptions Wrapper that receives options and sends an http request
+// doWithOptions Wrapper that receives options and sends a http request
 func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) {
 	//Extracting body payload
 	req, payload := getReqBody(req)
@@ -1023,7 +1126,23 @@ func (c *Client) doWithOptions(req *http.Request, retryMax int) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	return io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err == nil {
+		slog.Debug("http response",
+			slog.String("url", req.URL.String()),
+			slog.String("body", string(body)), // logging payload and cookies
+			slog.String("method", req.Method),
+		)
+	}
+	c.Log.Info("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("method", req.Method))
+	c.Log.Debug("HTTP request completed",
+		slog.String("url", req.URL.String()),
+		slog.String("response code", strconv.Itoa(resp.StatusCode)),
+		slog.String("response body", string(body)),
+		slog.String("method", req.Method))
+	return body, err
 }
 
 // getReqBody Finds http payload and resets it
@@ -1062,9 +1181,10 @@ func retryAfter(remainingRetries, retries int) int64 {
 func httpStatusCheck(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		return nil
-	} else if resp.StatusCode == 400 {
-		b, _ := io.ReadAll(resp.Body)
-		return &ZCCError{Err: "HTTP error: Invalid or bad request" + string(b), Code: resp.StatusCode}
+	}
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == 400 {
+		return &ZCCError{Err: "HTTP error: Invalid or bad request", Code: resp.StatusCode, Body: b}
 	} else if resp.StatusCode == 401 {
 		return &ZCCError{Err: "HTTP error: Session is not authenticated or timed out", Code: resp.StatusCode}
 	} else if resp.StatusCode == 403 {
@@ -1076,11 +1196,11 @@ func httpStatusCheck(resp *http.Response) error {
 	} else if resp.StatusCode == 429 {
 		return &ZCCError{Err: "HTTP error: Exceeded the rate limit or quota. The response includes a Retry-After value.", Code: resp.StatusCode}
 	} else if resp.StatusCode == 500 {
-		return &ZCCError{Err: "HTTP error: Unexpected error", Code: resp.StatusCode}
+		return &ZCCError{Err: "HTTP error: Unexpected error", Code: resp.StatusCode, Body: b}
 	} else if resp.StatusCode == 503 {
-		return &ZCCError{Err: "HTTP error: Service is temporarily unavailable", Code: resp.StatusCode}
+		return &ZCCError{Err: "HTTP error: Service is temporarily unavailable", Code: resp.StatusCode, Body: b}
 	} else {
-		return &ZCCError{Err: "Invalid HTTP response code", Code: resp.StatusCode}
+		return &ZCCError{Err: "Invalid HTTP response code", Code: resp.StatusCode, Body: b}
 	}
 }
 
