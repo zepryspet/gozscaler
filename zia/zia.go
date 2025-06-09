@@ -156,13 +156,13 @@ type DecryptAction struct {
 }
 
 type DecryptSubActions struct {
-	ServerCertificates              string `json:"serverCertificates,omitempty"`
-	OcspCheck                       bool   `json:"ocspCheck,omitempty"`
-	MinClientTLSVersion             string `json:"minClientTLSVersion,omitempty"`
-	MinServerTLSVersion             string `json:"minServerTLSVersion,omitempty"`
-	BlockUndecrypt                  bool   `json:"blockUndecrypt,omitempty"`
-	HTTP2Enabled                    bool   `json:"http2Enabled,omitempty"`
-	BlockSslTrafficWithNoSniEnabled bool   `json:"blockSslTrafficWithNoSniEnabled,omitempty"`
+	ServerCertificates              string `json:"serverCertificates"`
+	OcspCheck                       bool   `json:"ocspCheck"`
+	MinClientTLSVersion             string `json:"minClientTLSVersion"`
+	MinServerTLSVersion             string `json:"minServerTLSVersion"`
+	BlockUndecrypt                  bool   `json:"blockUndecrypt"`
+	HTTP2Enabled                    bool   `json:"http2Enabled"`
+	BlockSslTrafficWithNoSniEnabled bool   `json:"blockSslTrafficWithNoSniEnabled"`
 }
 
 type DoNotDecryptSubActions struct {
@@ -605,6 +605,7 @@ type FwRule struct {
 	DestAddresses       []string `json:"destAddresses,omitempty"`
 	DestIPCategories    []string `json:"destIpCategories,omitempty"`
 	DestCountries       []string `json:"destCountries,omitempty"`
+	SourceCountries     []string `json:"sourceCountries,omitempty"`
 	DestIPGroups        []NameID `json:"destIpGroups,omitempty"`
 	NwServices          []NameID `json:"nwServices,omitempty"`
 	NwServiceGroups     []NameID `json:"nwServiceGroups,omitempty"`
