@@ -906,7 +906,7 @@ func (p CloudInstance) String() string {
 type RiskProfile struct {
 	ID                        int      `json:"id,omitempty"`
 	ProfileName               string   `json:"profileName,omitempty"`
-	ProfileType               int      `json:"profileType,omitempty"`
+	ProfileType               string   `json:"profileType,omitempty"`
 	RiskIndex                 []int    `json:"riskIndex,omitempty"`
 	Status                    string   `json:"status,omitempty"`
 	ExcludeCertificates       int      `json:"excludeCertificates,omitempty"`
@@ -3549,8 +3549,13 @@ func genPost[K Zid](c *Client, path string, obj K) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	//new to unmarshal before returning id
+	err = json.Unmarshal(body, &obj)
+	if err != nil {
+		return 0, err
+	}
 	_, id := obj.GetID()
-	return id, json.Unmarshal(body, &obj)
+	return id, nil
 }
 
 // genPut generic http put with unmarshalling
